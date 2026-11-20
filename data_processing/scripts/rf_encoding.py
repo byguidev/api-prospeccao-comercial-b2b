@@ -19,6 +19,8 @@ from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+from rf_source import Source
+
 # Letras acentuadas em latin-1 (exclui × e ÷).
 _ACCENTED = "À-ÖØ-öø-ÿ"
 _ACCENTED_BYTES = re.compile(rb"[\xC0-\xD6\xD8-\xF6\xF8-\xFF]+")
@@ -60,9 +62,9 @@ def _skeleton(word: str) -> str:
     return _ACCENTED_CHAR.sub("?", word.upper())
 
 
-def _scan_accented_words(path: Path) -> Counter:
+def _scan_accented_words(source: Source) -> Counter:
     words: Counter = Counter()
-    with open(path, "rb") as f:
+    with source.open_binary() as f:
         carry = b""
         while chunk := f.read(64 << 20):
             data = carry + chunk
@@ -82,11 +84,11 @@ def _scan_accented_words(path: Path) -> Counter:
     return words
 
 
-def build_vocabulary(files: Iterable[Path], workers: int) -> dict[str, str]:
+def build_vocabulary(sources: Iterable[Source], workers: int) -> dict[str, str]:
     """Mapeia esqueleto ("S?O") -> palavra acentuada dominante ("SÃO")."""
     totals: Counter = Counter()
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        for words in pool.map(_scan_accented_words, files):
+        for words in pool.map(_scan_accented_words, sources):
             totals.update(words)
 
     by_skeleton: dict[str, Counter] = {}
@@ -101,10 +103,12 @@ def build_vocabulary(files: Iterable[Path], workers: int) -> dict[str, str]:
     return vocabulary
 
 
-def load_or_build_vocabulary(path: Path, files: list[Path], workers: int, rebuild: bool) -> dict[str, str]:
+def load_or_build_vocabulary(
+    path: Path, sources: list[Source], workers: int, rebuild: bool
+) -> dict[str, str]:
     if path.exists() and not rebuild:
         return json.loads(path.read_text(encoding="utf-8"))
-    vocabulary = build_vocabulary(files, workers)
+    vocabulary = build_vocabulary(sources, workers)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(vocabulary, ensure_ascii=False, sort_keys=True), encoding="utf-8")
     return vocabulary
