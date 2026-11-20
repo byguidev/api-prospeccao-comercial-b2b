@@ -127,7 +127,7 @@ class ReceitaShare:
     def url(self, *parts: str) -> str:
         return "/".join([self.base, *(quote(p) for p in parts)])
 
-    def list(self, *parts: str) -> list[RemoteEntry]:
+    def list_dir(self, *parts: str) -> list[RemoteEntry]:
         def propfind():
             with _request(self.url(*parts) + "/", "PROPFIND", {"Depth": "1", "Content-Type": "application/xml"},
                           _PROPFIND_BODY) as resp:
@@ -137,10 +137,10 @@ class ReceitaShare:
 
     def releases(self) -> list[RemoteEntry]:
         """Pastas de competência (AAAA-MM), da mais antiga para a mais recente."""
-        return sorted((e for e in self.list() if e.is_dir and COMPETENCIA.fullmatch(e.name)), key=lambda e: e.name)
+        return sorted((e for e in self.list_dir() if e.is_dir and COMPETENCIA.fullmatch(e.name)), key=lambda e: e.name)
 
     def release_files(self, competencia: str) -> list[RemoteEntry]:
-        return sorted((e for e in self.list(competencia) if not e.is_dir), key=lambda e: e.name)
+        return sorted((e for e in self.list_dir(competencia) if not e.is_dir), key=lambda e: e.name)
 
 
 def missing_tables(files: Iterable[RemoteEntry]) -> list[str]:

@@ -4,7 +4,7 @@ Scripts que baixam, todo mês, os arquivos do CNPJ publicados pela Receita Feder
 
 ## Requisitos
 
-- Python 3.12+ (testado com 3.14)
+- Python 3.12+ (declarado em `pyproject.toml`; testado com 3.12, 3.13 e 3.14)
 - Sem dependências externas (somente biblioteca padrão)
 - Espaço em disco: cerca de 8 GB para os ZIPs de uma competência + cerca de 35 GB para os CSVs gerados
 
@@ -134,6 +134,7 @@ Todos os comandos devem ser executados a partir da **raiz do projeto** e funcion
 | Continuar uma execução interrompida | `python data_processing/scripts/process_receita.py --skip-existing` |
 | Ver a ajuda com todas as opções | `python data_processing/scripts/process_receita.py --help` |
 | Rodar os testes | `python -m unittest discover data_processing/scripts` |
+| Rodar os testes em outra versão do Python (requer `uv`) | `uv run --no-project --python 3.12 python -m unittest discover data_processing/scripts` |
 
 ### Opções
 
