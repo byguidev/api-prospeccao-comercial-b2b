@@ -1,0 +1,127 @@
+<mxfile host="app.diagrams.net">
+<diagram id="classes-model" name="Diagrama de Classes">
+<mxGraphModel adaptiveColors="auto" dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1200" math="0" shadow="0">
+<root>
+<mxCell id="0"/>
+<mxCell id="1" parent="0"/>
+<mxCell id="title" value="Diagrama de Classes — API de Prospecção Comercial B2B (pacote model)" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+<mxGeometry x="40" y="10" width="640" height="30" as="geometry"/>
+</mxCell>
+<mxCell id="empresa" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Empresa&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- cnpjBasico: String {id}&lt;br&gt;- razaoSocial: String&lt;br&gt;- naturezaJuridica: String&lt;br&gt;- qualificacaoResponsavel: String&lt;br&gt;- capitalSocial: Double&lt;br&gt;- porteEmpresa: PorteEmpresa&lt;br&gt;- enteFederativoResponsavel: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="700" y="200" width="260" height="170" as="geometry"/>
+</mxCell>
+<mxCell id="socio" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Socio&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- id: Long {id, IDENTITY}&lt;br&gt;- identificadorSocio: TipoSocio&lt;br&gt;- nomeSocioRazaoSocial: String&lt;br&gt;- cpfCnpjSocio: String&lt;br&gt;- qualificacaoSocio: String&lt;br&gt;- dataEntradaSociedade: LocalDate&lt;br&gt;- pais: String&lt;br&gt;- representanteLegal: String&lt;br&gt;- nomeRepresentante: String&lt;br&gt;- qualificacaoRepresentanteLegal: String&lt;br&gt;- faixaEtaria: FaixaEtaria&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="320" y="200" width="260" height="232" as="geometry"/>
+</mxCell>
+<mxCell id="simples" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Simples&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- cnpjBasico: String {id}&lt;br&gt;- opcaoSimples: OpcaoSN&lt;br&gt;- dataOpcaoSimples: LocalDate&lt;br&gt;- dataExclusaoSimples: LocalDate&lt;br&gt;- opcaoMei: OpcaoSN&lt;br&gt;- dataOpcaoMei: LocalDate&lt;br&gt;- dataExclusaoMei: LocalDate&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="1080" y="200" width="260" height="170" as="geometry"/>
+</mxCell>
+<mxCell id="estab" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Estabelecimento&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- identificadorMatrizFilial: MatrizFilial&lt;br&gt;- nomeFantasia: String&lt;br&gt;- situacaoCadastral: SituacaoCadastral&lt;br&gt;- dataSituacaoCadastral: LocalDate&lt;br&gt;- motivoSituacaoCadastral: String&lt;br&gt;- situacaoEspecial: String&lt;br&gt;- dataSituacaoEspecial: LocalDate&lt;br&gt;- dataInicioAtividade: LocalDate&lt;br&gt;- cnaeFiscalPrincipal: String&lt;br&gt;- cnaeFiscalSecundaria: String&lt;br&gt;- tipoLogradouro: String&lt;br&gt;- logradouro: String&lt;br&gt;- numero: String&lt;br&gt;- complemento: String&lt;br&gt;- bairro: String&lt;br&gt;- cep: String&lt;br&gt;- uf: String&lt;br&gt;- municipio: String&lt;br&gt;- pais: String&lt;br&gt;- nomeCidadeExterior: String&lt;br&gt;- ddd1: String&lt;br&gt;- telefone1: String&lt;br&gt;- ddd2: String&lt;br&gt;- telefone2: String&lt;br&gt;- dddFax: String&lt;br&gt;- fax: String&lt;br&gt;- correioEletronico: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="700" y="480" width="260" height="490" as="geometry"/>
+</mxCell>
+<mxCell id="estid" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Embeddable»&lt;/i&gt;&lt;br&gt;&lt;b&gt;EstabelecimentoId&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- cnpjBasico: String&lt;br&gt;- cnpjOrdem: String&lt;br&gt;- cnpjDv: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#FFF0E5;strokeColor=#F0B48A;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="380" y="560" width="220" height="100" as="geometry"/>
+</mxCell>
+<mxCell id="enPorte" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«enumeration»&lt;/i&gt;&lt;br&gt;&lt;b&gt;PorteEmpresa&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;NAO_INFORMADO (&quot;00&quot;)&lt;br&gt;MICROEMPRESA (&quot;01&quot;)&lt;br&gt;EMPRESA_PEQUENO_PORTE (&quot;03&quot;)&lt;br&gt;DEMAIS (&quot;05&quot;)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#F3EEFF;strokeColor=#B9A6F0;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="730" y="30" width="200" height="116" as="geometry"/>
+</mxCell>
+<mxCell id="enOpcao" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«enumeration»&lt;/i&gt;&lt;br&gt;&lt;b&gt;OpcaoSN&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;SIM (&quot;S&quot;)&lt;br&gt;NAO (&quot;N&quot;)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#F3EEFF;strokeColor=#B9A6F0;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="1110" y="60" width="200" height="84" as="geometry"/>
+</mxCell>
+<mxCell id="enTipo" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«enumeration»&lt;/i&gt;&lt;br&gt;&lt;b&gt;TipoSocio&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;PESSOA_JURIDICA (&quot;1&quot;)&lt;br&gt;PESSOA_FISICA (&quot;2&quot;)&lt;br&gt;ESTRANGEIRO (&quot;3&quot;)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#F3EEFF;strokeColor=#B9A6F0;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="40" y="185" width="200" height="100" as="geometry"/>
+</mxCell>
+<mxCell id="enFaixa" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«enumeration»&lt;/i&gt;&lt;br&gt;&lt;b&gt;FaixaEtaria&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;NAO_SE_APLICA (&quot;0&quot;)&lt;br&gt;DE_0_A_12_ANOS (&quot;1&quot;)&lt;br&gt;DE_13_A_20_ANOS (&quot;2&quot;)&lt;br&gt;DE_21_A_30_ANOS (&quot;3&quot;)&lt;br&gt;DE_31_A_40_ANOS (&quot;4&quot;)&lt;br&gt;DE_41_A_50_ANOS (&quot;5&quot;)&lt;br&gt;DE_51_A_60_ANOS (&quot;6&quot;)&lt;br&gt;DE_61_A_70_ANOS (&quot;7&quot;)&lt;br&gt;DE_71_A_80_ANOS (&quot;8&quot;)&lt;br&gt;MAIS_DE_80_ANOS (&quot;9&quot;)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#F3EEFF;strokeColor=#B9A6F0;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="40" y="303" width="200" height="212" as="geometry"/>
+</mxCell>
+<mxCell id="enMatriz" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«enumeration»&lt;/i&gt;&lt;br&gt;&lt;b&gt;MatrizFilial&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;MATRIZ (&quot;1&quot;)&lt;br&gt;FILIAL (&quot;2&quot;)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#F3EEFF;strokeColor=#B9A6F0;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="1080" y="480" width="200" height="84" as="geometry"/>
+</mxCell>
+<mxCell id="enSit" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«enumeration»&lt;/i&gt;&lt;br&gt;&lt;b&gt;SituacaoCadastral&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;NULA (&quot;01&quot;)&lt;br&gt;ATIVA (&quot;02&quot;)&lt;br&gt;SUSPENSA (&quot;03&quot;)&lt;br&gt;INAPTA (&quot;04&quot;)&lt;br&gt;BAIXADA (&quot;08&quot;)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#F3EEFF;strokeColor=#B9A6F0;fontColor=#1B1F24;" vertex="1" parent="1">
+<mxGeometry x="1080" y="600" width="200" height="132" as="geometry"/>
+</mxCell>
+<mxCell id="dom" value="Tabelas de domínio (referenciadas por código)" style="swimlane;startSize=28;fontStyle=1;fontSize=13;html=1;fillColor=#F7F8FA;strokeColor=#D5DAE1;" vertex="1" parent="1">
+<mxGeometry x="40" y="720" width="520" height="218" as="geometry"/>
+</mxCell>
+<mxCell id="cnae" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Cnae&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- codigo: String {id}&lt;br&gt;- descricao: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="dom">
+<mxGeometry x="15" y="40" width="150" height="76" as="geometry"/>
+</mxCell>
+<mxCell id="municipio" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Municipio&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- codigo: String {id}&lt;br&gt;- descricao: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="dom">
+<mxGeometry x="180" y="40" width="150" height="76" as="geometry"/>
+</mxCell>
+<mxCell id="pais" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Pais&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- codigo: String {id}&lt;br&gt;- descricao: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="dom">
+<mxGeometry x="345" y="40" width="150" height="76" as="geometry"/>
+</mxCell>
+<mxCell id="qualif" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Qualificacao&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- codigo: String {id}&lt;br&gt;- descricao: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="dom">
+<mxGeometry x="15" y="128" width="150" height="76" as="geometry"/>
+</mxCell>
+<mxCell id="natureza" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Natureza&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- codigo: String {id}&lt;br&gt;- descricao: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="dom">
+<mxGeometry x="180" y="128" width="150" height="76" as="geometry"/>
+</mxCell>
+<mxCell id="motivo" value="&lt;p style=&quot;margin:4px 0 0;text-align:center;&quot;&gt;&lt;i&gt;«Entity»&lt;/i&gt;&lt;br&gt;&lt;b&gt;Motivo&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0 0 0 6px;&quot;&gt;- codigo: String {id}&lt;br&gt;- descricao: String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;html=1;whiteSpace=wrap;fillColor=#EEF4FF;strokeColor=#9DB8F2;fontColor=#1B1F24;" vertex="1" parent="dom">
+<mxGeometry x="345" y="128" width="150" height="76" as="geometry"/>
+</mxCell>
+<mxCell id="note" value="&lt;b&gt;Legenda e referências lógicas&lt;/b&gt;&lt;br&gt;Linha tracejada = referência lógica por código (sem relacionamento JPA).&lt;br&gt;Empresa.naturezaJuridica → Natureza&lt;br&gt;Empresa.qualificacaoResponsavel → Qualificacao&lt;br&gt;Estabelecimento.cnaeFiscalPrincipal/Secundaria → Cnae&lt;br&gt;Estabelecimento.municipio → Municipio; .pais → Pais&lt;br&gt;Estabelecimento.motivoSituacaoCadastral → Motivo&lt;br&gt;Socio.pais → Pais; Socio.qualificacao* → Qualificacao&lt;br&gt;Simples.cnpjBasico = Empresa.cnpjBasico (1:1 lógico, sem FK)" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=12;fillColor=#FFF9DB;strokeColor=#E9D58A;spacing=8;" vertex="1" parent="1">
+<mxGeometry x="40" y="955" width="520" height="160" as="geometry"/>
+</mxCell>
+<mxCell id="eSocEmp" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;exitX=1;exitY=0.366;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#8A94A6;" edge="1" source="socio" target="empresa" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eSocEmpA" value="0..*" style="edgeLabel;resizable=0;html=1;align=left;verticalAlign=bottom;" vertex="1" connectable="0" parent="eSocEmp">
+<mxGeometry x="-1" relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eSocEmpB" value="1" style="edgeLabel;resizable=0;html=1;align=right;verticalAlign=bottom;" vertex="1" connectable="0" parent="eSocEmp">
+<mxGeometry x="1" relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eEstEmp" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;strokeColor=#8A94A6;" edge="1" source="estab" target="empresa" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eEstEmpA" value="1..*" style="edgeLabel;resizable=0;html=1;align=left;verticalAlign=bottom;" vertex="1" connectable="0" parent="eEstEmp">
+<mxGeometry x="-1" relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eEstEmpB" value="1" style="edgeLabel;resizable=0;html=1;align=left;verticalAlign=top;" vertex="1" connectable="0" parent="eEstEmp">
+<mxGeometry x="1" relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eSimEmp" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;dashed=1;strokeColor=#8A94A6;" edge="1" source="simples" target="empresa" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eSimEmpA" value="0..1" style="edgeLabel;resizable=0;html=1;align=left;verticalAlign=bottom;" vertex="1" connectable="0" parent="eSimEmp">
+<mxGeometry x="-1" relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eSimEmpB" value="1" style="edgeLabel;resizable=0;html=1;align=right;verticalAlign=bottom;" vertex="1" connectable="0" parent="eSimEmp">
+<mxGeometry x="1" relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eEstId" style="edgeStyle=orthogonalEdgeStyle;html=1;startArrow=diamondThin;startFill=1;startSize=14;endArrow=none;exitX=0;exitY=0.265;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#8A94A6;" edge="1" source="estab" target="estid" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eEstIdA" value="1" style="edgeLabel;resizable=0;html=1;align=left;verticalAlign=bottom;" vertex="1" connectable="0" parent="eEstId">
+<mxGeometry x="-1" relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="eEstIdB" value="1" style="edgeLabel;resizable=0;html=1;align=right;verticalAlign=bottom;" vertex="1" connectable="0" parent="eEstId">
+<mxGeometry x="1" relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="dPorte" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;dashed=1;strokeColor=#8A94A6;" edge="1" source="empresa" target="enPorte" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="dOpcao" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;dashed=1;strokeColor=#8A94A6;" edge="1" source="simples" target="enOpcao" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="dTipo" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;dashed=1;exitX=0;exitY=0.15;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#8A94A6;" edge="1" source="socio" target="enTipo" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="dFaixa" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;dashed=1;exitX=0;exitY=0.9;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#8A94A6;" edge="1" source="socio" target="enFaixa" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="dMatriz" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;dashed=1;exitX=1;exitY=0.0857;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#8A94A6;" edge="1" source="estab" target="enMatriz" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="dSit" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;dashed=1;exitX=1;exitY=0.38;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#8A94A6;" edge="1" source="estab" target="enSit" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="dDom" value="«ref. por código»" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;dashed=1;exitX=0;exitY=0.9;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#8A94A6;fontColor=#5A626E;" edge="1" source="estab" target="dom" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+</root>
+</mxGraphModel>
+</diagram>
+</mxfile>
