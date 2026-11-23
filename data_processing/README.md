@@ -179,3 +179,15 @@ COPY empresas FROM 'C:/.../output/2026-11/empresas/Empresas0.csv'
 ```
 
 Se a saída foi gerada com `--null-marker ""`, omita a cláusula `NULL 'NULL'`.
+
+`socios` não tem chave natural: o `id` é uma coluna identity, então o CSV não traz `id` e o banco o preenche na carga. Para isso, liste as colunas do CSV no `COPY`:
+
+```sql
+COPY socios (cnpj_basico, identificador_socio, nome_socio_razao_social, cpf_cnpj_socio,
+             qualificacao_socio, data_entrada_sociedade, pais, representante_legal,
+             nome_representante, qualificacao_representante_legal, faixa_etaria)
+    FROM 'C:/.../output/2026-11/socios/Socios0.csv'
+    WITH (FORMAT csv, HEADER true, DELIMITER ';', NULL 'NULL', ENCODING 'UTF8');
+```
+
+Listar as colunas também protege as outras tabelas: o Hibernate não cria as colunas na ordem dos campos da entidade, e o `COPY` sem lista de colunas segue a ordem física da tabela.
