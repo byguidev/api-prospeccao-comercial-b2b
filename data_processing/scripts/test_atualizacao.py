@@ -269,13 +269,17 @@ class UpdateFlowTest(unittest.TestCase):
         self.addCleanup(self.server.close)
         self.entries = [RemoteEntry(n, False, len(b), OLD, "v1") for n, b in sorted(files.items())]
 
-    def update(self, entries=None) -> int:
+    def update(self, entries=None, extra=(), carregar_side_effect=None) -> int:
         share = _FakeShare(self.server, self.entries if entries is None else entries)
         args = atualizar_receita.parse_args([
             "--data-dir", str(self.dir / "data"), "--output-dir", str(self.dir / "output"),
-            "--log-dir", str(self.dir / "logs"), "--workers", "1",
+            "--log-dir", str(self.dir / "logs"), "--workers", "1", *extra,
         ])
-        with mock.patch.object(atualizar_receita, "ReceitaShare", lambda url: share):
+        # A carga no PostgreSQL é sempre simulada aqui: nenhum psql roda.
+        with mock.patch.object(atualizar_receita, "ReceitaShare", lambda url: share), \
+                mock.patch.object(atualizar_receita, "Banco") as banco, \
+                mock.patch.object(atualizar_receita, "carregar", side_effect=carregar_side_effect) as carregar:
+            self.banco, self.carregar = banco, carregar
             return atualizar_receita.run(args)
 
     def state(self) -> dict:
@@ -292,6 +296,51 @@ class UpdateFlowTest(unittest.TestCase):
             self.assertEqual(self.update(), 0)
         self.assertIn("nada a fazer", "\n".join(logs.output))
         self.assertEqual(len(self.server.requests), 10)  # nada baixado de novo
+
+    def test_database_is_not_touched_without_the_flag(self):
+        self.update()
+        self.update()
+        self.carregar.assert_not_called()
+
+    def test_database_load_runs_after_processing_and_is_rechecked_on_idle_days(self):
+        self.update(extra=["--carregar-banco"])
+        self.carregar.assert_called_once()
+        args, kwargs = self.carregar.call_args
+        self.assertEqual(args[1:3], (self.dir / "output" / "2026-11", "2026-11"))
+        self.assertEqual(args[3], self.state()["etags"])  # assinatura dos arquivos publicados
+        self.assertFalse(kwargs["force"])
+        self.assertTrue((self.dir / "output" / "2026-11" / "relatorio_processamento.json").exists())
+
+        # dia seguinte, nada novo: não baixa nem trata, mas confere o banco (retoma carga interrompida)
+        self.update(extra=["--carregar-banco"])
+        self.carregar.assert_called_once()
+        self.assertEqual(len(self.server.requests), 10)
+
+    def test_database_failure_fails_the_run_and_is_retried_next_time(self):
+        with self.assertRaises(RuntimeError):
+            self.update(extra=["--carregar-banco"], carregar_side_effect=RuntimeError("banco fora do ar"))
+        self.assertEqual(self.state()["status"], "concluido")  # o tratamento não se perde
+
+        self.update(extra=["--carregar-banco"])  # sem baixar/tratar de novo, só a carga
+        self.carregar.assert_called_once()
+        self.assertEqual(len(self.server.requests), 10)
+
+    def test_republished_file_reloads_the_database(self):
+        self.update(extra=["--carregar-banco"])
+        changed = [RemoteEntry(e.name, e.is_dir, e.size, e.modified, "v2" if e.name == "Cnaes.zip" else e.etag)
+                   for e in self.entries]
+        self.update(changed, extra=["--carregar-banco"])
+        etags = self.carregar.call_args.args[3]
+        self.assertEqual(etags["Cnaes.zip"], "v2")  # nova assinatura => o banco será esvaziado e recarregado
+
+    def test_partial_runs_never_load_the_database(self):
+        self.update(extra=["--carregar-banco", "--tables", "cnaes", "--limit", "1"])
+        self.carregar.assert_not_called()
+
+    def test_force_is_passed_to_the_loader(self):
+        self.update()
+        self.update(extra=["--carregar-banco", "--force"])
+        self.assertTrue(self.carregar.call_args.kwargs["force"])
 
     def test_republished_file_is_downloaded_and_processed_again(self):
         self.update()

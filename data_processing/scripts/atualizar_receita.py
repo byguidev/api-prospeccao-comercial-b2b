@@ -6,7 +6,9 @@ Feito para rodar todo dia (Agendador de Tarefas do Windows ou cron). Em cada exe
   3. se ela já foi tratada e nenhum arquivo mudou desde então, encerra;
   4. baixa os ZIPs para data/AAAA-MM/ (nomes e estrutura originais; retoma downloads interrompidos);
   5. trata os arquivos (process_receita.py) gerando output/AAAA-MM/;
-  6. apaga competências antigas de data/ e output/ conforme a política de retenção.
+  6. com --carregar-banco: esvazia e recarrega o PostgreSQL com a competência (carregar_banco.py);
+     uma carga interrompida é retomada na execução seguinte;
+  7. apaga competências antigas de data/ e output/ conforme a política de retenção.
 Tudo é registrado em data_processing/logs/atualizar_receita.log.
 
 Uso (a partir da raiz do projeto):
@@ -29,6 +31,7 @@ from datetime import datetime, timedelta, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+from carregar_banco import Banco, add_db_arguments, carregar, db_config_from_args
 from process_receita import COMPETENCIA, DATA_PROCESSING_DIR, Options, processar
 from rf_download import (
     DEFAULT_SHARE_URL,
@@ -139,6 +142,14 @@ def prune(root: Path, keep: int, current: str) -> None:
         shutil.rmtree(root / name)
 
 
+def carregar_no_banco(
+    args: argparse.Namespace, competencia: str, output_dir: Path, etags: dict[str, str], force: bool = False
+) -> None:
+    """Esvazia e recarrega o PostgreSQL com a competência tratada (ver carregar_banco.py). Falha = exceção."""
+    log.info("Carga no banco: %s@%s:%s/%s", args.db_user, args.db_host, args.db_port, args.db_name)
+    carregar(Banco(db_config_from_args(args)), output_dir, competencia, etags, force=force, jobs=args.db_jobs)
+
+
 # --------------------------------------------------------------------------- fluxo
 
 
@@ -180,7 +191,11 @@ def run(args: argparse.Namespace) -> int:
     state = read_state(output_dir)
     if state.get("status") == "concluido" and state.get("etags") == etags and not state.get("parcial") \
             and not partial and not args.force:
-        log.info("Competência %s já tratada em %s; nada a fazer.", competencia, state.get("concluido_em"))
+        if args.carregar_banco:  # confere o banco (rápido se já estiver carregado) e retoma carga interrompida
+            log.info("Competência %s já tratada em %s; conferindo o banco.", competencia, state.get("concluido_em"))
+            carregar_no_banco(args, competencia, output_dir, etags)
+        else:
+            log.info("Competência %s já tratada em %s; nada a fazer.", competencia, state.get("concluido_em"))
         return 0
 
     total_zip = sum(f.size for f in files)
@@ -232,8 +247,10 @@ def run(args: argparse.Namespace) -> int:
     log.info("Competência %s tratada com sucesso: %s", competencia, output_dir)
 
     if partial:
-        log.info("Execução parcial (--tables/--limit): retenção não aplicada.")
+        log.info("Execução parcial (--tables/--limit): carga no banco e retenção não aplicadas.")
     else:
+        if args.carregar_banco:  # se falhar, a retenção não roda e a carga é retomada na próxima execução
+            carregar_no_banco(args, competencia, output_dir, etags, force=args.force)
         prune(args.data_dir, args.keep_downloads, competencia)
         prune(args.output_dir, args.keep_outputs, competencia)
     return 0
@@ -261,7 +278,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--keep-outputs", type=int, default=2,
                         help="competências mantidas em output/ (padrão: 2, a atual e a anterior)")
     parser.add_argument("--check-only", action="store_true", help="só verifica se há competência nova")
-    parser.add_argument("--force", action="store_true", help="trata de novo mesmo que já esteja concluída")
+    parser.add_argument("--force", action="store_true",
+                        help="trata de novo mesmo que já esteja concluída (com --carregar-banco, recarrega o banco)")
+    parser.add_argument("--carregar-banco", action="store_true",
+                        help="depois do tratamento, esvazia e recarrega o PostgreSQL com a competência")
+    add_db_arguments(parser)
     args = parser.parse_args(argv)
     if args.release and not COMPETENCIA.fullmatch(args.release):
         parser.error("--release deve estar no formato AAAA-MM")

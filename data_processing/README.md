@@ -56,13 +56,13 @@ A Receita publica uma pasta por competência (`2026-11/`, `2026-12/`...) no comp
 3. **Encerra** se a competência já foi tratada e nenhum arquivo mudou desde então (compara os ETags).
 4. Confere o espaço em disco e baixa os ZIPs para `data/AAAA-MM/`, 4 por vez: cada arquivo vai para `.part`, é validado (tamanho + CRC do ZIP) e só então renomeado. Downloads interrompidos são retomados de onde pararam; falhas de rede são repetidas.
 5. Trata os arquivos, gerando `output/AAAA-MM/`. Uma execução interrompida é retomada sem refazer os CSVs já concluídos.
-6. Aplica a retenção: mantém em `data/` só a competência atual e em `output/` a atual e a anterior. Somente pastas no formato `AAAA-MM` são removidas.
+6. Com `--carregar-banco`: esvazia e recarrega o PostgreSQL com a competência (ver [Carga automática no banco](#carga-automática-no-banco)).
+7. Aplica a retenção: mantém em `data/` só a competência atual e em `output/` a atual e a anterior. Somente pastas no formato `AAAA-MM` são removidas. Se a carga no banco falhar, a retenção não roda.
 
 Se a Receita **republicar** algum arquivo de uma competência já tratada (ETag diferente), a execução seguinte baixa só esse arquivo e gera a saída de novo.
 
 Tudo é registrado em `logs/atualizar_receita.log` (rotacionado em 5 MB, 5 arquivos). O código de saída é `0` para sucesso ou "nada a fazer" e `1` para falha.
 
-### Agendar no Windows
 ### Carga automática no banco
 
 A Receita publica um dump **completo** por mês, então a carga é uma **substituição**: a cada competência nova (ou arquivo republicado) as tabelas são esvaziadas (`TRUNCATE ... RESTART IDENTITY`) e carregadas de novo. Ative com `--carregar-banco` (ou `-CarregarBanco` no agendador). Os dados anteriores só são apagados depois de conferir que há `psql`, conexão, as 10 tabelas e todos os CSVs.
@@ -95,6 +95,7 @@ Ordem: tabelas de apoio, `empresas`, depois `estabelecimentos`, `socios` e `simp
 
 Não rode a carga automática enquanto uma carga manual (`carregar_banco.ps1` ou `COPY`) estiver em andamento: o `TRUNCATE` esperaria o `COPY` terminar e esvaziaria o que ele acabou de carregar.
 
+### Agendar no Windows
 
 Na raiz do projeto, no PowerShell:
 
@@ -104,7 +105,9 @@ powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1
 powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1 -Remover        # remove a tarefa
 ```
 
-A tarefa roda com `pythonw.exe` (sem janela), só quando o usuário está conectado, com até 12 horas de duração e sem instâncias simultâneas. Se o computador estiver desligado no horário, ela roda assim que ele for ligado. Para executar na hora: `Start-ScheduledTask -TaskName 'CNPJ Receita Federal - atualizacao'`.
+Para incluir a carga no banco, acrescente `-CarregarBanco` (opcionalmente `-DbHost`, `-DbPorta`, `-DbUsuario`, `-DbNome`); o limite de duração passa a 24 horas (`-LimiteHoras` altera). A senha vem do `pgpass.conf`.
+
+A tarefa roda com `pythonw.exe` (sem janela), só quando o usuário está conectado, com até 12 horas de duração (24 com `-CarregarBanco`) e sem instâncias simultâneas. Se o computador estiver desligado no horário, ela roda assim que ele for ligado. Para executar na hora: `Start-ScheduledTask -TaskName 'CNPJ Receita Federal - atualizacao'`.
 
 ### Comandos
 
@@ -141,6 +144,9 @@ A tarefa roda com `pythonw.exe` (sem janela), só quando o usuário está conect
 | 6 | Todo valor sai entre aspas (texto), preservando zeros à esquerda | `"0001"`, `"08371299"` |
 | 7 | Campos vazios gravados como `NULL` (sem aspas) | `""` → `NULL` |
 | 8 | Lê latin-1, grava UTF-8 e corrige defeitos da origem | ver abaixo |
+| 9 | Em `empresas`, descarta o registro vazio que repete o `cnpj_basico` de um registro com dados | `"08314885";"";"0000";"00";"0,00";"";""` junto de `"08314885";"FLAVIO PAVAO DE SOUZA";...` |
+
+A regra 9 existe porque a Receita publica, raramente, um segundo registro com a mesma chave e todos os demais campos vazios ou zerados (em 2026-11: 1 caso em 71 milhões de linhas), o que violaria a chave primária na carga. Só é descartado o registro vazio **que tem duplicata** (consecutiva, pois os arquivos vêm ordenados pela chave); um registro vazio sozinho é mantido, porque pode ser o único daquele CNPJ e ter estabelecimentos ou sócios. Duplicatas em que ambos os registros têm dados não são alteradas (aparecem como `duplicate_keys` no relatório). O descartado vai para `_rejeitados/` com a linha de origem e conta em `duplicate_placeholder`.
 
 ### Correções de codificação
 
@@ -178,9 +184,6 @@ Todos os comandos devem ser executados a partir da **raiz do projeto** e funcion
 | `--output PASTA` | Pasta de saída | `output/<nome da pasta de entrada>` |
 | `--tables T1 T2 ...` | Processa só as tabelas indicadas: `empresas`, `estabelecimentos`, `socios`, `simples`, `cnaes`, `motivos`, `municipios`, `naturezas`, `paises`, `qualificacoes` | todas |
 | `--workers N` | Quantos arquivos processar em paralelo | nº de núcleos − 1 |
-| 9 | Em `empresas`, descarta o registro vazio que repete o `cnpj_basico` de um registro com dados | `"08314885";"";"0000";"00";"0,00";"";""` junto de `"08314885";"FLAVIO PAVAO DE SOUZA";...` |
-
-A regra 9 existe porque a Receita publica, raramente, um segundo registro com a mesma chave e todos os demais campos vazios ou zerados (em 2026-11: 1 caso em 71 milhões de linhas), o que violaria a chave primária na carga. Só é descartado o registro vazio **que tem duplicata** (consecutiva, pois os arquivos vêm ordenados pela chave); um registro vazio sozinho é mantido, porque pode ser o único daquele CNPJ e ter estabelecimentos ou sócios. Duplicatas em que ambos os registros têm dados não são alteradas (aparecem como `duplicate_keys` no relatório). O descartado vai para `_rejeitados/` com a linha de origem e conta em `duplicate_placeholder`.
 | `--limit N` | Processa só os N primeiros registros de cada arquivo | sem limite |
 | `--skip-existing` | Pula os arquivos que já foram gerados | desligado |
 | `--delimiter X` | Separador de colunas na saída | `;` |
