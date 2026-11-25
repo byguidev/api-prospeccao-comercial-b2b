@@ -144,6 +144,9 @@ Todos os comandos devem ser executados a partir da **raiz do projeto** e funcion
 | `--output PASTA` | Pasta de saída | `output/<nome da pasta de entrada>` |
 | `--tables T1 T2 ...` | Processa só as tabelas indicadas: `empresas`, `estabelecimentos`, `socios`, `simples`, `cnaes`, `motivos`, `municipios`, `naturezas`, `paises`, `qualificacoes` | todas |
 | `--workers N` | Quantos arquivos processar em paralelo | nº de núcleos − 1 |
+| 9 | Em `empresas`, descarta o registro vazio que repete o `cnpj_basico` de um registro com dados | `"08314885";"";"0000";"00";"0,00";"";""` junto de `"08314885";"FLAVIO PAVAO DE SOUZA";...` |
+
+A regra 9 existe porque a Receita publica, raramente, um segundo registro com a mesma chave e todos os demais campos vazios ou zerados (em 2026-11: 1 caso em 71 milhões de linhas), o que violaria a chave primária na carga. Só é descartado o registro vazio **que tem duplicata** (consecutiva, pois os arquivos vêm ordenados pela chave); um registro vazio sozinho é mantido, porque pode ser o único daquele CNPJ e ter estabelecimentos ou sócios. Duplicatas em que ambos os registros têm dados não são alteradas (aparecem como `duplicate_keys` no relatório). O descartado vai para `_rejeitados/` com a linha de origem e conta em `duplicate_placeholder`.
 | `--limit N` | Processa só os N primeiros registros de cada arquivo | sem limite |
 | `--skip-existing` | Pula os arquivos que já foram gerados | desligado |
 | `--delimiter X` | Separador de colunas na saída | `;` |
@@ -165,7 +168,7 @@ Todos os comandos devem ser executados a partir da **raiz do projeto** e funcion
 
 - **Vocabulário de acentos:** é montado na primeira execução de cada competência lendo todos os arquivos (alguns minutos) e salvo em `output/<competência>/vocabulario_acentos.json`. As execuções seguintes da mesma competência reaproveitam esse arquivo; use `--rebuild-vocab` para refazê-lo.
 - **Arquivos parciais:** cada CSV é gravado como `.tmp` e só renomeado ao terminar, então uma execução interrompida não deixa arquivos incompletos. Use `--skip-existing` para retomar.
-- **Rejeitados:** registros que não fecham com o número de colunas esperado vão para `output/<competência>/_rejeitados/`, com o número da linha original.
+- **Rejeitados:** registros que não fecham com o número de colunas esperado, e os registros vazios duplicados (regra 9), vão para `output/<competência>/_rejeitados/`, com o número da linha original.
 - **Relatório:** `relatorio_processamento.json` traz as contagens por tabela e por arquivo (ZIP/arquivo de origem, registros, NULLs, datas convertidas/inválidas, correções `enc_*` etc.) e a lista de erros.
 - **Integridade:** o CRC de cada arquivo é conferido no download e de novo na leitura do ZIP; um arquivo corrompido gera erro em vez de dados truncados.
 

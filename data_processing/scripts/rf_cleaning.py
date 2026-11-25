@@ -14,6 +14,7 @@ from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import date
 from functools import lru_cache
+from operator import itemgetter
 
 from rf_encoding import TextFixer
 
@@ -92,10 +93,12 @@ def _glue(left: str, right: str) -> str:
     return f"{left} {right}" if left and right else left + right
 
 
-def iter_records(
+def iter_numbered_records(
     lines: Iterable[str], n_fields: int, stats: Counter, rejects: list[tuple[int, list[str]]]
-) -> Iterator[list[str]]:
-    """Lê registros ``"campo";"campo"`` respeitando aspas.
+) -> Iterator[tuple[int, list[str]]]:
+    """Lê registros ``"campo";"campo"`` respeitando aspas; devolve ``(linha_de_origem, campos)``.
+
+    ``linha_de_origem`` é a primeira linha física do registro no arquivo lido.
 
     - ";" dentro de aspas faz parte do valor (não é separador).
     - Quebra de linha dentro de aspas é tratada pelo parser CSV (o registro continua).
@@ -130,7 +133,7 @@ def iter_records(
         if len(row) == n_fields:
             if span > 1:
                 stats["multiline_records"] += 1
-            yield row
+            yield start, row
         elif len(row) < n_fields and span < MAX_PHYSICAL_LINES_PER_RECORD:
             pending, pending_start, pending_span = row, start, span
         else:
@@ -140,6 +143,71 @@ def iter_records(
     if pending is not None:
         rejects.append((pending_start, pending))
         stats["rejected"] += 1
+
+
+def iter_records(
+    lines: Iterable[str], n_fields: int, stats: Counter, rejects: list[tuple[int, list[str]]]
+) -> Iterator[list[str]]:
+    """Como ``iter_numbered_records``, mas devolve só os campos."""
+    for _, row in iter_numbered_records(lines, n_fields, stats, rejects):
+        yield row
+
+
+# --------------------------------------------------------------------------- chaves duplicadas
+
+_ZERO_ONLY = re.compile(r"[0.,]+")
+
+
+def _blank_or_zero(value: str) -> bool:
+    v = value.strip()
+    return not v or _ZERO_ONLY.fullmatch(v) is not None
+
+
+def is_placeholder(row: list[str], key_idx: frozenset[int]) -> bool:
+    """True se todos os campos fora da chave estão vazios ou zerados ("", "0000", "00", "0,00")."""
+    return all(_blank_or_zero(v) for i, v in enumerate(row) if i not in key_idx)
+
+
+def drop_placeholder_duplicates(
+    records: Iterable[tuple[int, list[str]]],
+    key_idx: tuple[int, ...],
+    stats: Counter,
+    rejects: list[tuple[int, list[str]]],
+) -> Iterator[tuple[int, list[str]]]:
+    """Remove registro vazio (placeholder) que repete a chave de um registro com dados.
+
+    A Receita publica, raramente, um segundo registro com a mesma chave e todos os demais campos
+    vazios/zerados (ex.: ``"08314885";"";"0000";"00";"0,00";"";""``), que violaria a chave primária.
+    Considera só registros consecutivos (os arquivos vêm ordenados pela chave). O registro vazio vai
+    para ``rejects``. Um registro vazio SEM duplicata é mantido: pode ser o único registro daquela chave
+    e ter filhos (estabelecimentos, sócios). Duplicatas em que ambos têm dados também são mantidas
+    (``duplicate_keys``): decidir qual vale não é função do tratamento.
+    """
+    key_of = itemgetter(*key_idx)
+    key_set = frozenset(key_idx)
+    held: tuple[int, list[str]] | None = None
+
+    for line, row in records:
+        if held is not None and key_of(held[1]) == key_of(row):
+            if is_placeholder(row, key_set):
+                dropped = (line, row)
+            elif is_placeholder(held[1], key_set):
+                dropped, held = held, (line, row)
+            else:
+                stats["duplicate_keys"] += 1
+                yield held
+                held = (line, row)
+                continue
+            rejects.append(dropped)
+            stats["rejected"] += 1
+            stats["duplicate_placeholder"] += 1
+            continue
+        if held is not None:
+            yield held
+        held = (line, row)
+
+    if held is not None:
+        yield held
 
 
 # --------------------------------------------------------------------------- transformação

@@ -7,7 +7,10 @@ from collections import Counter
 from rf_cleaning import (
     clean_record,
     column_kinds,
+    drop_placeholder_duplicates,
     format_line,
+    is_placeholder,
+    iter_numbered_records,
     iter_records,
     normalize_date,
     normalize_decimal,
@@ -52,6 +55,65 @@ class ReadingTest(unittest.TestCase):
         rows, _, rejects = read('"1";"a";"b";"c"\n', 3)
         self.assertEqual(rows, [])
         self.assertEqual(len(rejects), 1)
+
+
+def dedupe(text: str, layout_name: str = "empresas"):
+    """Lê e aplica o descarte de placeholders com a chave do layout, como o process_receita faz."""
+    layout = LAYOUTS[layout_name]
+    stats, rejects = Counter(), []
+    numbered = iter_numbered_records(io.StringIO(text, newline=""), len(layout.columns), stats, rejects)
+    rows = list(drop_placeholder_duplicates(numbered, layout.key_indexes(), stats, rejects))
+    return rows, stats, rejects
+
+
+PLACEHOLDER = '"08314885";"";"0000";"00";"0,00";"";""\n'
+REAL = '"08314885";"FLAVIO PAVAO DE SOUZA";"4120";"59";"0,00";"05";""\n'
+
+
+class DuplicatePlaceholderTest(unittest.TestCase):
+    def test_empty_record_after_real_one_is_dropped(self):
+        # caso real de Empresas2: linhas 3 e 4 com o mesmo CNPJ
+        rows, stats, rejects = dedupe('"08314884";"A";"1";"2";"0,00";"05";""\n' + REAL + PLACEHOLDER)
+        self.assertEqual([r[0] for _, r in rows], ["08314884", "08314885"])
+        self.assertEqual(rows[1][1][1], "FLAVIO PAVAO DE SOUZA")
+        self.assertEqual([line for line, _ in rejects], [3])
+        self.assertEqual((stats["rejected"], stats["duplicate_placeholder"]), (1, 1))
+
+    def test_empty_record_before_real_one_is_dropped(self):
+        rows, _, rejects = dedupe(PLACEHOLDER + REAL)
+        self.assertEqual([r[1] for _, r in rows], ["FLAVIO PAVAO DE SOUZA"])
+        self.assertEqual([line for line, _ in rejects], [1])
+
+    def test_lone_empty_record_is_kept(self):
+        # sem duplicata, o registro vazio pode ser o único daquela chave (e ter estabelecimentos)
+        rows, stats, rejects = dedupe(REAL + '"08314886";"";"0000";"00";"0,00";"";""\n')
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rejects, [])
+        self.assertEqual(stats["duplicate_placeholder"], 0)
+
+    def test_duplicates_with_data_in_both_are_kept_and_counted(self):
+        other = '"08314885";"OUTRA RAZAO";"4120";"59";"0,00";"05";""\n'
+        rows, stats, rejects = dedupe(REAL + other)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rejects, [])
+        self.assertEqual(stats["duplicate_keys"], 1)
+
+    def test_line_number_accounts_for_merged_multiline_records(self):
+        text = REAL + '"08314885";"";"0000"\n;"00";"0,00";"";""\n'  # placeholder partido em 2 linhas físicas
+        rows, _, rejects = dedupe(text)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual([line for line, _ in rejects], [2])
+
+    def test_is_placeholder_ignores_key_and_accepts_zero_formats(self):
+        key = frozenset({0})
+        self.assertTrue(is_placeholder(["1", "", "0000", "00", "0,00", "", ""], key))
+        self.assertTrue(is_placeholder(["1", " ", "0000", "00", "0.00", "", ""], key))
+        self.assertFalse(is_placeholder(["1", "ACME", "0000", "00", "0,00", "", ""], key))
+        self.assertFalse(is_placeholder(["1", "", "0000", "00", "5000,00", "", ""], key))
+
+    def test_only_tables_with_declared_key_are_deduplicated(self):
+        self.assertEqual(LAYOUTS["empresas"].key_indexes(), (0,))
+        self.assertEqual(LAYOUTS["socios"].key_indexes(), ())  # sócios não tem chave natural
 
 
 class DateTest(unittest.TestCase):

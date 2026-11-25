@@ -34,7 +34,13 @@ from dataclasses import dataclass, field
 from itertools import islice
 from pathlib import Path
 
-from rf_cleaning import clean_record, column_kinds, format_line, iter_records
+from rf_cleaning import (
+    clean_record,
+    column_kinds,
+    drop_placeholder_duplicates,
+    format_line,
+    iter_numbered_records,
+)
 from rf_encoding import TextFixer, load_or_build_vocabulary
 from rf_layout import LAYOUTS, TableLayout
 from rf_source import Source, discover_sources
@@ -107,12 +113,14 @@ def process_file(job: Job) -> tuple[str, str, Counter]:
         open(tmp_target, "w", encoding="utf-8-sig" if job.bom else OUTPUT_ENCODING, newline="") as dst,
     ):
         dst.write(format_line(layout.columns, job.delimiter, job.null_marker))
-        records = iter_records(src, n_fields, stats, rejects)
+        records = iter_numbered_records(src, n_fields, stats, rejects)
+        if layout.key_columns:
+            records = drop_placeholder_duplicates(records, layout.key_indexes(), stats, rejects)
         if job.limit:
             records = islice(records, job.limit)
 
         write = dst.write
-        for row in records:
+        for _, row in records:
             write(format_line(clean_record(row, kinds, stats, fixer), job.delimiter, job.null_marker))
             stats["records"] += 1
 

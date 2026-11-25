@@ -16,9 +16,14 @@ class TableLayout:
     file_markers: tuple[str, ...]
     date_columns: frozenset[str] = frozenset()
     decimal_columns: frozenset[str] = frozenset()
+    # Chave natural (única no banco). Se informada, registros vazios que repetem a chave são descartados.
+    key_columns: tuple[str, ...] = ()
 
     def indexes_of(self, names: frozenset[str]) -> frozenset[int]:
         return frozenset(self.columns.index(n) for n in names)
+
+    def key_indexes(self) -> tuple[int, ...]:
+        return tuple(self.columns.index(n) for n in self.key_columns)
 
 
 _LOOKUP_COLUMNS = ("codigo", "descricao")
@@ -39,6 +44,7 @@ LAYOUTS: dict[str, TableLayout] = {
             ),
             file_markers=("EMPRECSV",),
             decimal_columns=frozenset({"capital_social"}),
+            key_columns=("cnpj_basico",),
         ),
         TableLayout(
             name="estabelecimentos",
