@@ -31,7 +31,8 @@ data_processing/
 │   └── atualizar_receita.log         # histórico das execuções automáticas
 ├── agendar_atualizacao.ps1           # registra a tarefa diária no Agendador de Tarefas do Windows
 └── scripts/
-    ├── atualizar_receita.py          # atualização automática: verifica, baixa e trata (CLI)
+    ├── atualizar_receita.py          # atualização automática: verifica, baixa, trata e (opcional) carrega no banco (CLI)
+    ├── carregar_banco.py             # carga no PostgreSQL: esvazia e recarrega a cada dump novo (CLI)
     ├── process_receita.py            # tratamento de uma competência já baixada (CLI)
     ├── rf_download.py                # listagem e download do compartilhamento da Receita
     ├── rf_source.py                  # leitura dos ZIPs (sem extrair) e identificação das tabelas
@@ -39,7 +40,8 @@ data_processing/
     ├── rf_cleaning.py                # leitura, datas, decimais, NULL
     ├── rf_encoding.py                # correção de codificação
     ├── test_rf_cleaning.py           # testes das regras de limpeza
-    └── test_atualizacao.py           # testes de leitura dos ZIPs, download e atualização
+    ├── test_atualizacao.py           # testes de leitura dos ZIPs, download e atualização
+    └── test_carga_banco.py           # testes da carga no banco (com banco simulado)
 ```
 
 Cada ZIP contém um único arquivo com o nome original da Receita (ex.: `Empresas0.zip` → `K3241.K03200Y0.D61114.EMPRECSV`). Os ZIPs são lidos diretamente, sem extração, e a tabela é identificada pelo nome do ZIP. Pastas com arquivos já extraídos continuam aceitas pelo `process_receita.py` (tabela identificada pela pasta ou pelo nome do arquivo).
@@ -61,6 +63,38 @@ Se a Receita **republicar** algum arquivo de uma competência já tratada (ETag 
 Tudo é registrado em `logs/atualizar_receita.log` (rotacionado em 5 MB, 5 arquivos). O código de saída é `0` para sucesso ou "nada a fazer" e `1` para falha.
 
 ### Agendar no Windows
+### Carga automática no banco
+
+A Receita publica um dump **completo** por mês, então a carga é uma **substituição**: a cada competência nova (ou arquivo republicado) as tabelas são esvaziadas (`TRUNCATE ... RESTART IDENTITY`) e carregadas de novo. Ative com `--carregar-banco` (ou `-CarregarBanco` no agendador). Os dados anteriores só são apagados depois de conferir que há `psql`, conexão, as 10 tabelas e todos os CSVs.
+
+**Liberar espaço depois da carga:** com o banco carregado, os CSVs (`empresas/`, `estabelecimentos/`, `socios/`, `simples/`, `...`) e os ZIPs de `data/` podem ser apagados. Mantenha o `_atualizacao.json` e o `relatorio_processamento.json` da competência (são pequenos): sem o primeiro o agendador trataria a competência de novo; sem o segundo a conferência falha. Os CSVs só são exigidos quando há algo a carregar (competência nova, carga interrompida, `--force`); sem eles, essas situações falham antes de apagar qualquer coisa. Recarregar o mesmo mês sem os CSVs exige tratar tudo de novo.
+
+O estado fica no próprio banco, em duas tabelas de controle criadas automaticamente: `carga_status` (competência, assinatura dos ETags e `carregando`/`concluida`) e `carga_arquivos` (um registro por CSV carregado). A cada execução:
+
+| Situação do banco | O que acontece |
+|---|---|
+| Mesma competência e mesmos arquivos, carga concluída | Nada a fazer (conferência rápida) |
+| Mesma competência e mesmos arquivos, carga incompleta | Retoma, pulando os arquivos já carregados (cada arquivo é uma transação: `COPY` + registro) |
+| Competência nova, ou a Receita republicou algum arquivo | `TRUNCATE` e carga completa |
+| Sem controle, mas as contagens já são iguais às do relatório (carga manual anterior) | Adota como concluída, sem recarregar |
+| `--force` | `TRUNCATE` e carga completa |
+
+Ordem: tabelas de apoio, `empresas`, depois `estabelecimentos`, `socios` e `simples` (chaves estrangeiras para `empresas`). Ao final, a contagem de cada tabela é comparada com o `relatorio_processamento.json` (divergência = erro) e roda `ANALYZE`. Execuções parciais (`--tables`/`--limit`) nunca carregam o banco.
+
+**Durante a carga a API vê tabelas vazias ou incompletas** (esvaziar e recarregar tem essa janela; leva horas). As tabelas precisam existir: suba a API uma vez (`ddl-auto=update`).
+
+**Senha:** nunca por argumento. O `psql` roda com `-w` (não pergunta senha, para não travar a tarefa sem console). Use `PGPASSWORD` ou o `pgpass.conf` do usuário que roda a tarefa (Windows: `%APPDATA%\postgresql\pgpass.conf`), uma linha `host:porta:banco:usuario:senha`. Prefira um usuário do banco só para a carga, com permissão nessas tabelas, em vez do `postgres`.
+
+| Objetivo | Comando |
+|---|---|
+| Atualização completa com carga no banco | `python data_processing/scripts/atualizar_receita.py --carregar-banco` |
+| Só carregar uma competência já tratada | `python data_processing/scripts/carregar_banco.py --release 2026-11` |
+| Esvaziar e recarregar de novo | `python data_processing/scripts/carregar_banco.py --release 2026-11 --force` |
+| Outro banco/usuário | `--db-host`, `--db-port`, `--db-user`, `--db-name` (padrões: `localhost`, `5432`, `postgres`, `prospeccao`; também `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`) |
+| `psql` fora do PATH | `--psql "C:/Program Files/PostgreSQL/18/bin/psql.exe"` (no Windows ele também procura em `C:\Program Files\PostgreSQL\*\bin`) |
+
+Não rode a carga automática enquanto uma carga manual (`carregar_banco.ps1` ou `COPY`) estiver em andamento: o `TRUNCATE` esperaria o `COPY` terminar e esvaziaria o que ele acabou de carregar.
+
 
 Na raiz do projeto, no PowerShell:
 
