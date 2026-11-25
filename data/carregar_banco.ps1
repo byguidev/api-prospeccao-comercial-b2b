@@ -5,9 +5,9 @@ Pula arquivos ja carregados (tabela de controle carga_arquivos) e pede a senha u
 O arquivo e ASCII de proposito: o PowerShell 5.1 le .ps1 sem BOM como ANSI e estragaria acentos.
 
 Exemplos (na raiz do projeto):
-  powershell -ExecutionPolicy Bypass -File data_processing\carregar_banco.ps1
-  powershell -ExecutionPolicy Bypass -File data_processing\carregar_banco.ps1 -Tabelas cnaes   # teste
-  powershell -ExecutionPolicy Bypass -File data_processing\carregar_banco.ps1 -Competencia 2026-11
+  powershell -ExecutionPolicy Bypass -File data\carregar_banco.ps1
+  powershell -ExecutionPolicy Bypass -File data\carregar_banco.ps1 -Tabelas cnaes   # teste
+  powershell -ExecutionPolicy Bypass -File data\carregar_banco.ps1 -Competencia 2026-11
 #>
 param(
     [string]$Competencia,

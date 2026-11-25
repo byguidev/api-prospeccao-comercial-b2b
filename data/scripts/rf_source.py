@@ -2,7 +2,7 @@
 
 A entrada padrão é a pasta da competência exatamente como baixada do site da Receita:
 
-    data/2026-11/
+    data/raw/2026-11/
     ├── Cnaes.zip            -> F.K03200$Z.D61114.CNAECSV
     ├── Empresas0.zip        -> K3241.K03200Y0.D61114.EMPRECSV
     ├── ...

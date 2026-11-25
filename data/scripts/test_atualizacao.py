@@ -1,6 +1,6 @@
 """Testes da leitura dos ZIPs, do download e da atualização mensal.
 
-Executar: python -m unittest discover data_processing/scripts
+Executar: python -m unittest discover data/scripts
 """
 
 import json

@@ -1,6 +1,6 @@
 """Limpa e padroniza os arquivos do CNPJ (Dados Abertos da Receita Federal).
 
-A entrada é a pasta de uma competência como baixada do site da Receita (data/AAAA-MM/*.zip);
+A entrada é a pasta de uma competência como baixada do site da Receita (data/raw/AAAA-MM/*.zip);
 os ZIPs são lidos diretamente, sem extração. Para cada arquivo gera um CSV UTF-8 com:
   1. cabeçalho pré-definido por tipo de tabela (ver rf_layout.py);
   2. ";" dentro de campos preservado (leitura respeita aspas);
@@ -12,9 +12,9 @@ os ZIPs são lidos diretamente, sem extração. Para cada arquivo gera um CSV UT
   8. codificação: lê latin-1, grava UTF-8 e corrige defeitos da origem (ver rf_encoding.py).
 
 Uso (a partir da raiz do projeto):
-    python data_processing/scripts/process_receita.py
-    python data_processing/scripts/process_receita.py --tables empresas socios --workers 4
-    python data_processing/scripts/process_receita.py --limit 1000   # amostra para teste
+    python data/scripts/process_receita.py
+    python data/scripts/process_receita.py --tables empresas socios --workers 4
+    python data/scripts/process_receita.py --limit 1000   # amostra para teste
 
 Carga no PostgreSQL (exemplo):
     COPY empresas FROM '.../empresas/Empresas0.csv'
@@ -45,7 +45,7 @@ from rf_encoding import TextFixer, load_or_build_vocabulary
 from rf_layout import LAYOUTS, TableLayout
 from rf_source import Source, discover_sources
 
-DATA_PROCESSING_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = Path(__file__).resolve().parent.parent
 SOURCE_ENCODING = "latin-1"
 OUTPUT_ENCODING = "utf-8"
 REPORT_NAME = "relatorio_processamento.json"
@@ -239,9 +239,9 @@ def processar(opts: Options) -> dict:
 
 
 def latest_input_dir() -> Path | None:
-    """Pasta data/AAAA-MM mais recente."""
+    """Pasta data/raw/AAAA-MM mais recente."""
     candidates = sorted(
-        p for p in (DATA_PROCESSING_DIR / "data").glob("*") if p.is_dir() and COMPETENCIA.fullmatch(p.name)
+        p for p in (DATA_DIR / "raw").glob("*") if p.is_dir() and COMPETENCIA.fullmatch(p.name)
     )
     return candidates[-1] if candidates else None
 
@@ -249,7 +249,7 @@ def latest_input_dir() -> Path | None:
 def parse_args() -> Options:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input", type=Path, default=latest_input_dir(),
-                        help="pasta da competência, com os ZIPs da Receita (padrão: data/AAAA-MM mais recente)")
+                        help="pasta da competência, com os ZIPs da Receita (padrão: data/raw/AAAA-MM mais recente)")
     parser.add_argument("--output", type=Path, default=None,
                         help="pasta de saída (padrão: output/<nome da pasta de entrada>)")
     parser.add_argument("--tables", nargs="*", choices=sorted(LAYOUTS), help="processa só estas tabelas")
@@ -271,7 +271,7 @@ def parse_args() -> Options:
         parser.error(f"pasta de entrada inválida: {args.input}")
     return Options(
         input=args.input,
-        output=args.output or DATA_PROCESSING_DIR / "output" / args.input.name,
+        output=args.output or DATA_DIR / "output" / args.input.name,
         tables=frozenset(args.tables or ()),
         workers=args.workers,
         delimiter=args.delimiter,

@@ -11,8 +11,8 @@ Scripts que baixam, todo mês, os arquivos do CNPJ publicados pela Receita Feder
 ## Estrutura
 
 ```
-data_processing/
-├── data/
+data/
+├── raw/
 │   └── AAAA-MM/                      # ZIPs exatamente como publicados pela Receita (não extrair)
 │       ├── Cnaes.zip  Motivos.zip  Municipios.zip  Naturezas.zip  Paises.zip  Qualificacoes.zip
 │       ├── Empresas0.zip ... Empresas9.zip
@@ -54,20 +54,20 @@ A Receita publica uma pasta por competência (`2026-11/`, `2026-12/`...) no comp
 1. Lista as competências publicadas (via WebDAV público do Nextcloud) e escolhe a mais recente.
 2. **Espera** se a competência estiver incompleta (falta alguma das 10 tabelas) ou se algum arquivo foi alterado há menos de 3 horas (upload da Receita em andamento).
 3. **Encerra** se a competência já foi tratada e nenhum arquivo mudou desde então (compara os ETags).
-4. Confere o espaço em disco e baixa os ZIPs para `data/AAAA-MM/`, 4 por vez: cada arquivo vai para `.part`, é validado (tamanho + CRC do ZIP) e só então renomeado. Downloads interrompidos são retomados de onde pararam; falhas de rede são repetidas.
-5. Trata os arquivos, gerando `output/AAAA-MM/`. Uma execução interrompida é retomada sem refazer os CSVs já concluídos.
+4. Confere o espaço em disco e baixa os ZIPs para `data/raw/AAAA-MM/`, 4 por vez: cada arquivo vai para `.part`, é validado (tamanho + CRC do ZIP) e só então renomeado. Downloads interrompidos são retomados de onde pararam; falhas de rede são repetidas.
+5. Trata os arquivos, gerando `data/output/AAAA-MM/`. Uma execução interrompida é retomada sem refazer os CSVs já concluídos.
 6. Com `--carregar-banco`: esvazia e recarrega o PostgreSQL com a competência (ver [Carga automática no banco](#carga-automática-no-banco)).
-7. Aplica a retenção: mantém em `data/` só a competência atual e em `output/` a atual e a anterior. Somente pastas no formato `AAAA-MM` são removidas. Se a carga no banco falhar, a retenção não roda.
+7. Aplica a retenção: mantém em `data/raw/` só a competência atual e em `data/output/` a atual e a anterior. Somente pastas no formato `AAAA-MM` são removidas. Se a carga no banco falhar, a retenção não roda.
 
 Se a Receita **republicar** algum arquivo de uma competência já tratada (ETag diferente), a execução seguinte baixa só esse arquivo e gera a saída de novo.
 
-Tudo é registrado em `logs/atualizar_receita.log` (rotacionado em 5 MB, 5 arquivos). O código de saída é `0` para sucesso ou "nada a fazer" e `1` para falha.
+Tudo é registrado em `data/logs/atualizar_receita.log` (rotacionado em 5 MB, 5 arquivos). O código de saída é `0` para sucesso ou "nada a fazer" e `1` para falha.
 
 ### Carga automática no banco
 
 A Receita publica um dump **completo** por mês, então a carga é uma **substituição**: a cada competência nova (ou arquivo republicado) as tabelas são esvaziadas (`TRUNCATE ... RESTART IDENTITY`) e carregadas de novo. Ative com `--carregar-banco` (ou `-CarregarBanco` no agendador). Os dados anteriores só são apagados depois de conferir que há `psql`, conexão, as 10 tabelas e todos os CSVs.
 
-**Liberar espaço depois da carga:** com o banco carregado, os CSVs (`empresas/`, `estabelecimentos/`, `socios/`, `simples/`, `...`) e os ZIPs de `data/` podem ser apagados. Mantenha o `_atualizacao.json` e o `relatorio_processamento.json` da competência (são pequenos): sem o primeiro o agendador trataria a competência de novo; sem o segundo a conferência falha. Os CSVs só são exigidos quando há algo a carregar (competência nova, carga interrompida, `--force`); sem eles, essas situações falham antes de apagar qualquer coisa. Recarregar o mesmo mês sem os CSVs exige tratar tudo de novo.
+**Liberar espaço depois da carga:** com o banco carregado, os CSVs (`empresas/`, `estabelecimentos/`, `socios/`, `simples/`, `...`) e os ZIPs de `data/raw/` podem ser apagados. Mantenha o `_atualizacao.json` e o `relatorio_processamento.json` da competência (são pequenos): sem o primeiro o agendador trataria a competência de novo; sem o segundo a conferência falha. Os CSVs só são exigidos quando há algo a carregar (competência nova, carga interrompida, `--force`); sem eles, essas situações falham antes de apagar qualquer coisa. Recarregar o mesmo mês sem os CSVs exige tratar tudo de novo.
 
 O estado fica no próprio banco, em duas tabelas de controle criadas automaticamente: `carga_status` (competência, assinatura dos ETags e `carregando`/`concluida`) e `carga_arquivos` (um registro por CSV carregado). A cada execução:
 
@@ -87,9 +87,9 @@ Ordem: tabelas de apoio, `empresas`, depois `estabelecimentos`, `socios` e `simp
 
 | Objetivo | Comando |
 |---|---|
-| Atualização completa com carga no banco | `python data_processing/scripts/atualizar_receita.py --carregar-banco` |
-| Só carregar uma competência já tratada | `python data_processing/scripts/carregar_banco.py --release 2026-11` |
-| Esvaziar e recarregar de novo | `python data_processing/scripts/carregar_banco.py --release 2026-11 --force` |
+| Atualização completa com carga no banco | `python data/scripts/atualizar_receita.py --carregar-banco` |
+| Só carregar uma competência já tratada | `python data/scripts/carregar_banco.py --release 2026-11` |
+| Esvaziar e recarregar de novo | `python data/scripts/carregar_banco.py --release 2026-11 --force` |
 | Outro banco/usuário | `--db-host`, `--db-port`, `--db-user`, `--db-name` (padrões: `localhost`, `5432`, `postgres`, `prospeccao`; também `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`) |
 | `psql` fora do PATH | `--psql "C:/Program Files/PostgreSQL/18/bin/psql.exe"` (no Windows ele também procura em `C:\Program Files\PostgreSQL\*\bin`) |
 
@@ -100,9 +100,9 @@ Não rode a carga automática enquanto uma carga manual (`carregar_banco.ps1` ou
 Na raiz do projeto, no PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1                 # todo dia às 03:00
-powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1 -Horario 02:30  # outro horário
-powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1 -Remover        # remove a tarefa
+powershell -ExecutionPolicy Bypass -File data\agendar_atualizacao.ps1                 # todo dia às 03:00
+powershell -ExecutionPolicy Bypass -File data\agendar_atualizacao.ps1 -Horario 02:30  # outro horário
+powershell -ExecutionPolicy Bypass -File data\agendar_atualizacao.ps1 -Remover        # remove a tarefa
 ```
 
 Para incluir a carga no banco, acrescente `-CarregarBanco` (opcionalmente `-DbHost`, `-DbPorta`, `-DbUsuario`, `-DbNome`); o limite de duração passa a 24 horas (`-LimiteHoras` altera). A senha vem do `pgpass.conf`.
@@ -113,22 +113,22 @@ A tarefa roda com `pythonw.exe` (sem janela), só quando o usuário está conect
 
 | Objetivo | Comando |
 |---|---|
-| Execução normal (a mesma da tarefa agendada) | `python data_processing/scripts/atualizar_receita.py` |
-| Só verificar se há competência nova | `python data_processing/scripts/atualizar_receita.py --check-only` |
-| Baixar e tratar uma competência específica de novo | `python data_processing/scripts/atualizar_receita.py --release 2026-10 --force` |
-| Teste rápido com tabelas pequenas | `python data_processing/scripts/atualizar_receita.py --tables cnaes motivos --limit 100` |
+| Execução normal (a mesma da tarefa agendada) | `python data/scripts/atualizar_receita.py` |
+| Só verificar se há competência nova | `python data/scripts/atualizar_receita.py --check-only` |
+| Baixar e tratar uma competência específica de novo | `python data/scripts/atualizar_receita.py --release 2026-10 --force` |
+| Teste rápido com tabelas pequenas | `python data/scripts/atualizar_receita.py --tables cnaes motivos --limit 100` |
 
 | Opção | O que faz | Padrão |
 |---|---|---|
 | `--share-url URL` | Link do compartilhamento da Receita (também via variável `RECEITA_SHARE_URL`) | link acima |
 | `--release AAAA-MM` | Competência específica | a mais recente |
-| `--data-dir` / `--output-dir` / `--log-dir` | Pastas de download, saída e log | `data/`, `output/`, `logs/` |
+| `--data-dir` / `--output-dir` / `--log-dir` | Pastas de download, saída e log | `data/raw/`, `data/output/`, `data/logs/` |
 | `--tables T1 T2 ...` | Só estas tabelas (execução parcial, para teste: não marca a competência como concluída e não aplica retenção) | todas |
 | `--limit N` | Só os N primeiros registros de cada arquivo (teste) | sem limite |
 | `--workers N` | Processos no tratamento | nº de núcleos − 1 |
 | `--download-workers N` | Downloads simultâneos | 4 |
 | `--quiet-hours H` | Horas sem alterações na pasta da Receita antes de baixar | 3 |
-| `--keep-downloads N` / `--keep-outputs N` | Competências mantidas em `data/` / `output/` | 1 / 2 |
+| `--keep-downloads N` / `--keep-outputs N` | Competências mantidas em `data/raw/` / `data/output/` | 1 / 2 |
 | `--check-only` | Só informa se há competência pendente | desligado |
 | `--force` | Trata de novo mesmo que já esteja concluída | desligado |
 
@@ -168,20 +168,20 @@ Todos os comandos devem ser executados a partir da **raiz do projeto** e funcion
 
 | Objetivo | Comando |
 |---|---|
-| Processar tudo (configuração padrão) | `python data_processing/scripts/process_receita.py` |
-| Teste rápido, 1.000 registros por arquivo | `python data_processing/scripts/process_receita.py --limit 1000` |
-| Só algumas tabelas | `python data_processing/scripts/process_receita.py --tables empresas socios` |
-| Continuar uma execução interrompida | `python data_processing/scripts/process_receita.py --skip-existing` |
-| Ver a ajuda com todas as opções | `python data_processing/scripts/process_receita.py --help` |
-| Rodar os testes | `python -m unittest discover data_processing/scripts` |
-| Rodar os testes em outra versão do Python (requer `uv`) | `uv run --no-project --python 3.12 python -m unittest discover data_processing/scripts` |
+| Processar tudo (configuração padrão) | `python data/scripts/process_receita.py` |
+| Teste rápido, 1.000 registros por arquivo | `python data/scripts/process_receita.py --limit 1000` |
+| Só algumas tabelas | `python data/scripts/process_receita.py --tables empresas socios` |
+| Continuar uma execução interrompida | `python data/scripts/process_receita.py --skip-existing` |
+| Ver a ajuda com todas as opções | `python data/scripts/process_receita.py --help` |
+| Rodar os testes | `python -m unittest discover data/scripts` |
+| Rodar os testes em outra versão do Python (requer `uv`) | `uv run --no-project --python 3.12 python -m unittest discover data/scripts` |
 
 ### Opções
 
 | Opção | O que faz | Padrão |
 |---|---|---|
-| `--input PASTA` | Pasta da competência, com os ZIPs da Receita (ou arquivos já extraídos) | `data/AAAA-MM` mais recente |
-| `--output PASTA` | Pasta de saída | `output/<nome da pasta de entrada>` |
+| `--input PASTA` | Pasta da competência, com os ZIPs da Receita (ou arquivos já extraídos) | `data/raw/AAAA-MM` mais recente |
+| `--output PASTA` | Pasta de saída | `data/output/<nome da pasta de entrada>` |
 | `--tables T1 T2 ...` | Processa só as tabelas indicadas: `empresas`, `estabelecimentos`, `socios`, `simples`, `cnaes`, `motivos`, `municipios`, `naturezas`, `paises`, `qualificacoes` | todas |
 | `--workers N` | Quantos arquivos processar em paralelo | nº de núcleos − 1 |
 | `--limit N` | Processa só os N primeiros registros de cada arquivo | sem limite |
@@ -196,16 +196,16 @@ Todos os comandos devem ser executados a partir da **raiz do projeto** e funcion
 
 | Cenário | Comando |
 |---|---|
-| Abrir os CSVs no Excel | `python data_processing/scripts/process_receita.py --bom` |
-| Testar só `estabelecimentos` usando 4 processos | `python data_processing/scripts/process_receita.py --tables estabelecimentos --limit 5000 --workers 4` |
-| Processar uma pasta específica | `python data_processing/scripts/process_receita.py --input data_processing/data/2026-11 --output D:/saida_rf` |
-| NULL como campo vazio, padrão do `COPY` do PostgreSQL | `python data_processing/scripts/process_receita.py --null-marker ""` |
+| Abrir os CSVs no Excel | `python data/scripts/process_receita.py --bom` |
+| Testar só `estabelecimentos` usando 4 processos | `python data/scripts/process_receita.py --tables estabelecimentos --limit 5000 --workers 4` |
+| Processar uma pasta específica | `python data/scripts/process_receita.py --input data/raw/2026-11 --output D:/saida_rf` |
+| NULL como campo vazio, padrão do `COPY` do PostgreSQL | `python data/scripts/process_receita.py --null-marker ""` |
 
 ## Observações
 
-- **Vocabulário de acentos:** é montado na primeira execução de cada competência lendo todos os arquivos (alguns minutos) e salvo em `output/<competência>/vocabulario_acentos.json`. As execuções seguintes da mesma competência reaproveitam esse arquivo; use `--rebuild-vocab` para refazê-lo.
+- **Vocabulário de acentos:** é montado na primeira execução de cada competência lendo todos os arquivos (alguns minutos) e salvo em `data/output/<competência>/vocabulario_acentos.json`. As execuções seguintes da mesma competência reaproveitam esse arquivo; use `--rebuild-vocab` para refazê-lo.
 - **Arquivos parciais:** cada CSV é gravado como `.tmp` e só renomeado ao terminar, então uma execução interrompida não deixa arquivos incompletos. Use `--skip-existing` para retomar.
-- **Rejeitados:** registros que não fecham com o número de colunas esperado, e os registros vazios duplicados (regra 9), vão para `output/<competência>/_rejeitados/`, com o número da linha original.
+- **Rejeitados:** registros que não fecham com o número de colunas esperado, e os registros vazios duplicados (regra 9), vão para `data/output/<competência>/_rejeitados/`, com o número da linha original.
 - **Relatório:** `relatorio_processamento.json` traz as contagens por tabela e por arquivo (ZIP/arquivo de origem, registros, NULLs, datas convertidas/inválidas, correções `enc_*` etc.) e a lista de erros.
 - **Integridade:** o CRC de cada arquivo é conferido no download e de novo na leitura do ZIP; um arquivo corrompido gera erro em vez de dados truncados.
 

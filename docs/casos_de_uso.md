@@ -1,6 +1,6 @@
 # Casos de uso
 
-Este documento descreve o que a API de Prospecção Comercial B2B faz e quem a usa. Os dados vêm do CNPJ publicado como dados abertos pela Receita Federal (empresas, estabelecimentos, sócios, Simples/MEI e tabelas de códigos). Os scripts de `data_processing/` baixam e tratam esses arquivos, e a API em `api/` consulta o resultado no PostgreSQL.
+Este documento descreve o que a API de Prospecção Comercial B2B faz e quem a usa. Os dados vêm do CNPJ publicado como dados abertos pela Receita Federal (empresas, estabelecimentos, sócios, Simples/MEI e tabelas de códigos). Os scripts de `data/` baixam e tratam esses arquivos, e a API em `api/` consulta o resultado no PostgreSQL.
 
 A ideia é ajudar quem vende para empresas a encontrar as que se encaixam no perfil de cliente que procura e a consultar os dados cadastrais de cada uma.
 
@@ -33,7 +33,7 @@ A API só lê os dados. Ela entrega as informações como a Receita as publica e
 | UC08 | Carregar os dados tratados no PostgreSQL | Administrador |
 | UC09 | Verificar a situação da base | Administrador |
 
-UC06 e UC07 já estão implementados nos scripts de `data_processing/`. Os demais ainda não têm código.
+UC06 e UC07 já estão implementados nos scripts de `data/`. Os demais ainda não têm código.
 
 Cada caso de uso é descrito em duas partes: o **Fluxo** (passos principais e variações, inclusive os erros) e as **Regras de negócio** (as condições e os limites que o fluxo respeita). As regras são numeradas como `RNxx.y`, em que `xx` é o número do caso de uso.
 
@@ -182,8 +182,8 @@ A Receita publica uma pasta por mês (`2026-11`, `2026-12`...), sem dia fixo. Po
 3. Confere o espaço em disco: cerca de 8 GB para os ZIPs e 35 GB para os CSVs.
 4. Baixa os ZIPs, 4 por vez, validando tamanho e CRC antes de aceitar cada arquivo.
 5. Trata os arquivos (UC07).
-6. Aplica a retenção: mantém uma competência em `data/` e duas em `output/`, removendo apenas pastas no formato `AAAA-MM`.
-7. Registra tudo em `logs/atualizar_receita.log` e encerra com código `0`.
+6. Aplica a retenção: mantém uma competência em `data/raw/` e duas em `data/output/`, removendo apenas pastas no formato `AAAA-MM`.
+7. Registra tudo em `data/logs/atualizar_receita.log` e encerra com código `0`.
 
 **Fluxos alternativos e exceções**
 
@@ -203,8 +203,8 @@ A Receita publica uma pasta por mês (`2026-11`, `2026-12`...), sem dia fixo. Po
 - **RN06.4.** Antes de baixar, é preciso haver espaço em disco para cerca de 8 GB de ZIPs e 35 GB de CSVs.
 - **RN06.5.** Os downloads são feitos 4 por vez, e cada arquivo só é aceito depois de validados o tamanho e o CRC.
 - **RN06.6.** A detecção de mudança usa os ETags dos arquivos. Sem mudança, nada é refeito, e se um arquivo mudou, só ele é baixado de novo (a atualização é idempotente, RNF05).
-- **RN06.7.** A retenção mantém uma competência em `data/` e duas em `output/`, e só remove pastas no formato `AAAA-MM`.
-- **RN06.8.** Tudo é registrado em `logs/atualizar_receita.log`. O código de saída é `0` em sucesso, incluindo os casos em que não há nada a fazer, e `1` em falha de rede persistente ou falta de espaço.
+- **RN06.7.** A retenção mantém uma competência em `data/raw/` e duas em `data/output/`, e só remove pastas no formato `AAAA-MM`.
+- **RN06.8.** Tudo é registrado em `data/logs/atualizar_receita.log`. O código de saída é `0` em sucesso, incluindo os casos em que não há nada a fazer, e `1` em falha de rede persistente ou falta de espaço.
 - **RN06.9.** Execuções de teste (`--tables` ou `--limit`) não alteram o estado de conclusão nem a retenção.
 
 ### UC07. Tratar os arquivos de uma competência

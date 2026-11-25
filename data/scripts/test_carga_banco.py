@@ -1,6 +1,6 @@
 """Testes da carga no PostgreSQL. Usam um banco simulado: nenhum psql é executado de verdade.
 
-Executar: python -m unittest discover data_processing/scripts
+Executar: python -m unittest discover data/scripts
 """
 
 import json

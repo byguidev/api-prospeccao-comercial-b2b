@@ -4,18 +4,18 @@ Feito para rodar todo dia (Agendador de Tarefas do Windows ou cron). Em cada exe
   1. lista as competências publicadas no compartilhamento da Receita e escolhe a mais recente;
   2. se ela ainda estiver incompleta ou tiver sido alterada há pouco (upload em andamento), encerra;
   3. se ela já foi tratada e nenhum arquivo mudou desde então, encerra;
-  4. baixa os ZIPs para data/AAAA-MM/ (nomes e estrutura originais; retoma downloads interrompidos);
+  4. baixa os ZIPs para data/raw/AAAA-MM/ (nomes e estrutura originais; retoma downloads interrompidos);
   5. trata os arquivos (process_receita.py) gerando output/AAAA-MM/;
   6. com --carregar-banco: esvazia e recarrega o PostgreSQL com a competência (carregar_banco.py);
      uma carga interrompida é retomada na execução seguinte;
-  7. apaga competências antigas de data/ e output/ conforme a política de retenção.
-Tudo é registrado em data_processing/logs/atualizar_receita.log.
+  7. apaga competências antigas de data/raw/ e data/output/ conforme a política de retenção.
+Tudo é registrado em data/logs/atualizar_receita.log.
 
 Uso (a partir da raiz do projeto):
-    python data_processing/scripts/atualizar_receita.py                  # execução normal (agendada)
-    python data_processing/scripts/atualizar_receita.py --check-only     # só informa se há competência nova
-    python data_processing/scripts/atualizar_receita.py --release 2026-10 --force
-    python data_processing/scripts/atualizar_receita.py --tables cnaes motivos --limit 100   # teste rápido
+    python data/scripts/atualizar_receita.py                  # execução normal (agendada)
+    python data/scripts/atualizar_receita.py --check-only     # só informa se há competência nova
+    python data/scripts/atualizar_receita.py --release 2026-10 --force
+    python data/scripts/atualizar_receita.py --tables cnaes motivos --limit 100   # teste rápido
 
 Códigos de saída: 0 = sucesso ou nada a fazer; 1 = falha (detalhes no log).
 """
@@ -32,7 +32,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from carregar_banco import Banco, add_db_arguments, carregar, db_config_from_args
-from process_receita import COMPETENCIA, DATA_PROCESSING_DIR, Options, processar
+from process_receita import COMPETENCIA, DATA_DIR, Options, processar
 from rf_download import (
     DEFAULT_SHARE_URL,
     ReceitaShare,
@@ -260,11 +260,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--share-url", default=os.environ.get("RECEITA_SHARE_URL", DEFAULT_SHARE_URL),
                         help="link do compartilhamento da Receita (padrão: variável RECEITA_SHARE_URL ou %(default)s)")
-    parser.add_argument("--data-dir", type=Path, default=DATA_PROCESSING_DIR / "data",
+    parser.add_argument("--data-dir", type=Path, default=DATA_DIR / "raw",
                         help="onde os ZIPs são baixados, em <data-dir>/AAAA-MM (padrão: %(default)s)")
-    parser.add_argument("--output-dir", type=Path, default=DATA_PROCESSING_DIR / "output",
+    parser.add_argument("--output-dir", type=Path, default=DATA_DIR / "output",
                         help="onde os CSVs tratados são gerados, em <output-dir>/AAAA-MM (padrão: %(default)s)")
-    parser.add_argument("--log-dir", type=Path, default=DATA_PROCESSING_DIR / "logs")
+    parser.add_argument("--log-dir", type=Path, default=DATA_DIR / "logs")
     parser.add_argument("--release", metavar="AAAA-MM", help="competência específica (padrão: a mais recente)")
     parser.add_argument("--tables", nargs="+", choices=sorted(LAYOUTS),
                         help="só estas tabelas (execução parcial, para teste)")
@@ -274,7 +274,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--quiet-hours", type=float, default=3,
                         help="horas sem alterações na pasta da Receita antes de baixar (padrão: 3)")
     parser.add_argument("--keep-downloads", type=int, default=1,
-                        help="competências mantidas em data/ (padrão: 1, só a atual)")
+                        help="competências mantidas em data/raw/ (padrão: 1, só a atual)")
     parser.add_argument("--keep-outputs", type=int, default=2,
                         help="competências mantidas em output/ (padrão: 2, a atual e a anterior)")
     parser.add_argument("--check-only", action="store_true", help="só verifica se há competência nova")

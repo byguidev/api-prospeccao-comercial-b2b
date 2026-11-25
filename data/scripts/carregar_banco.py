@@ -28,8 +28,8 @@ a tarefa agendada.
 As tabelas precisam existir (a API cria no primeiro start, com ddl-auto=update).
 
 Uso (a partir da raiz do projeto):
-    python data_processing/scripts/carregar_banco.py                       # competência mais recente tratada
-    python data_processing/scripts/carregar_banco.py --release 2026-11 --force
+    python data/scripts/carregar_banco.py                       # competência mais recente tratada
+    python data/scripts/carregar_banco.py --release 2026-11 --force
 """
 
 import argparse
@@ -46,7 +46,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
-from process_receita import COMPETENCIA, DATA_PROCESSING_DIR, REPORT_NAME
+from process_receita import COMPETENCIA, DATA_DIR, REPORT_NAME
 from rf_layout import LAYOUTS
 
 # Ordem de carga: as tabelas de apoio e empresas antes de quem tem chave estrangeira para empresas.
@@ -471,7 +471,7 @@ def _latest_treated(output_root: Path) -> str | None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--release", metavar="AAAA-MM", help="competência (padrão: a mais recente já tratada)")
-    parser.add_argument("--output-dir", type=Path, default=DATA_PROCESSING_DIR / "output")
+    parser.add_argument("--output-dir", type=Path, default=DATA_DIR / "output")
     parser.add_argument("--force", action="store_true", help="esvazia e recarrega mesmo que o banco já esteja atualizado")
     add_db_arguments(parser)
     args = parser.parse_args(argv)

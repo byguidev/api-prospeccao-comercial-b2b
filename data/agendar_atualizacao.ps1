@@ -14,11 +14,11 @@
   roda a tarefa: %APPDATA%\postgresql\pgpass.conf, uma linha  host:porta:banco:usuario:senha
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1
-  powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1 -Horario 02:30
-  powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1 -CarregarBanco
-  powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1 -CarregarBanco -DbUsuario carga -DbNome prospeccao
-  powershell -ExecutionPolicy Bypass -File data_processing\agendar_atualizacao.ps1 -Remover
+  powershell -ExecutionPolicy Bypass -File data\agendar_atualizacao.ps1
+  powershell -ExecutionPolicy Bypass -File data\agendar_atualizacao.ps1 -Horario 02:30
+  powershell -ExecutionPolicy Bypass -File data\agendar_atualizacao.ps1 -CarregarBanco
+  powershell -ExecutionPolicy Bypass -File data\agendar_atualizacao.ps1 -CarregarBanco -DbUsuario carga -DbNome prospeccao
+  powershell -ExecutionPolicy Bypass -File data\agendar_atualizacao.ps1 -Remover
 #>
 param(
     [string]$Horario = "03:00",

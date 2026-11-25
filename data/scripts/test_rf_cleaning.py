@@ -1,4 +1,4 @@
-"""Testes das regras de limpeza. Executar: python -m unittest discover data_processing/scripts"""
+"""Testes das regras de limpeza. Executar: python -m unittest discover data/scripts"""
 
 import io
 import unittest
