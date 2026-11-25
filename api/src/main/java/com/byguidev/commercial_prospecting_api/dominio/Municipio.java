@@ -1,4 +1,4 @@
-package com.byguidev.commercial_prospecting_api.model;
+package com.byguidev.commercial_prospecting_api.dominio;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,11 +8,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name="naturezas")
+@Table(name="municipios")
 @Getter
 @Setter
 
-public class Natureza {
+public class Municipio {
     @Id
     @Column(name="codigo",length=4)
     private String codigo;

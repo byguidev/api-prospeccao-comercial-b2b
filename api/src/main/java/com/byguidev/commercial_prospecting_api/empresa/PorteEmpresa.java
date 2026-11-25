@@ -1,5 +1,6 @@
-package com.byguidev.commercial_prospecting_api.model.enumeration;
+package com.byguidev.commercial_prospecting_api.empresa;
 
+import com.byguidev.commercial_prospecting_api.compartilhado.CodigoEnum;
 import lombok.Getter;
 
 @Getter

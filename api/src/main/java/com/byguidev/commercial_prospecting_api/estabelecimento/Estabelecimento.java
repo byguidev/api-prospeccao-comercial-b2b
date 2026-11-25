@@ -1,8 +1,6 @@
-package com.byguidev.commercial_prospecting_api.model;
+package com.byguidev.commercial_prospecting_api.estabelecimento;
 
-import com.byguidev.commercial_prospecting_api.model.embedded.EstabelecimentoId;
-import com.byguidev.commercial_prospecting_api.model.enumeration.MatrizFilial;
-import com.byguidev.commercial_prospecting_api.model.enumeration.SituacaoCadastral;
+import com.byguidev.commercial_prospecting_api.empresa.Empresa;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

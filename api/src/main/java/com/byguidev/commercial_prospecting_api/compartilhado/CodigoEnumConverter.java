@@ -1,6 +1,5 @@
-package com.byguidev.commercial_prospecting_api.model.converter;
+package com.byguidev.commercial_prospecting_api.compartilhado;
 
-import com.byguidev.commercial_prospecting_api.model.enumeration.CodigoEnum;
 import jakarta.persistence.AttributeConverter;
 
 import java.util.Arrays;

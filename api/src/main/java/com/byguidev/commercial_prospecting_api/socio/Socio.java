@@ -1,7 +1,6 @@
-package com.byguidev.commercial_prospecting_api.model;
+package com.byguidev.commercial_prospecting_api.socio;
 
-import com.byguidev.commercial_prospecting_api.model.enumeration.FaixaEtaria;
-import com.byguidev.commercial_prospecting_api.model.enumeration.TipoSocio;
+import com.byguidev.commercial_prospecting_api.empresa.Empresa;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

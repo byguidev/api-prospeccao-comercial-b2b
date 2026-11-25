@@ -1,4 +1,4 @@
-package com.byguidev.commercial_prospecting_api.model;
+package com.byguidev.commercial_prospecting_api.dominio;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,13 +8,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name="paises")
+@Table(name="motivos")
 @Getter
 @Setter
 
-public class Pais {
+public class Motivo {
     @Id
-    @Column(name="codigo",length=3)
+    @Column(name="codigo",length=2)
     private String codigo;
     private String descricao;
 }

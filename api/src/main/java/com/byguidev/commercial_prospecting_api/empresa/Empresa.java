@@ -1,6 +1,5 @@
-package com.byguidev.commercial_prospecting_api.model;
+package com.byguidev.commercial_prospecting_api.empresa;
 
-import com.byguidev.commercial_prospecting_api.model.enumeration.PorteEmpresa;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

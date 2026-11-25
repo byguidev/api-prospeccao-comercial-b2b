@@ -1,6 +1,6 @@
-package com.byguidev.commercial_prospecting_api.model.converter;
+package com.byguidev.commercial_prospecting_api.simples;
 
-import com.byguidev.commercial_prospecting_api.model.enumeration.OpcaoSN;
+import com.byguidev.commercial_prospecting_api.compartilhado.CodigoEnumConverter;
 import jakarta.persistence.Converter;
 
 @Converter(autoApply = true)

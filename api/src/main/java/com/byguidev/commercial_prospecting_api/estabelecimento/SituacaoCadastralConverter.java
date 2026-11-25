@@ -1,6 +1,6 @@
-package com.byguidev.commercial_prospecting_api.model.converter;
+package com.byguidev.commercial_prospecting_api.estabelecimento;
 
-import com.byguidev.commercial_prospecting_api.model.enumeration.SituacaoCadastral;
+import com.byguidev.commercial_prospecting_api.compartilhado.CodigoEnumConverter;
 import jakarta.persistence.Converter;
 
 @Converter(autoApply = true)
