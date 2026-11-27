@@ -1,4 +1,4 @@
-package com.byguidev.commercial_prospecting_api.estabelecimento.model;
+package com.byguidev.commercial_prospecting_api.estabelecimento.model.constant;
 
 import com.byguidev.commercial_prospecting_api.compartilhado.CodigoEnum;
 import lombok.Getter;

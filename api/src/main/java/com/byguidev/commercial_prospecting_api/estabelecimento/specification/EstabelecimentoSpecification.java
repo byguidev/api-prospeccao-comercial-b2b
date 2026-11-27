@@ -1,11 +1,11 @@
 package com.byguidev.commercial_prospecting_api.estabelecimento.specification;
 
-import com.byguidev.commercial_prospecting_api.empresa.model.PorteEmpresa;
+import com.byguidev.commercial_prospecting_api.empresa.model.constant.PorteEmpresa;
 import com.byguidev.commercial_prospecting_api.estabelecimento.dto.EstabelecimentoFiltroRequest;
 import com.byguidev.commercial_prospecting_api.estabelecimento.model.Estabelecimento;
-import com.byguidev.commercial_prospecting_api.estabelecimento.model.MatrizFilial;
-import com.byguidev.commercial_prospecting_api.estabelecimento.model.SituacaoCadastral;
-import com.byguidev.commercial_prospecting_api.simples.model.OpcaoSN;
+import com.byguidev.commercial_prospecting_api.estabelecimento.model.constant.MatrizFilial;
+import com.byguidev.commercial_prospecting_api.estabelecimento.model.constant.SituacaoCadastral;
+import com.byguidev.commercial_prospecting_api.simples.model.constant.OpcaoSN;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 

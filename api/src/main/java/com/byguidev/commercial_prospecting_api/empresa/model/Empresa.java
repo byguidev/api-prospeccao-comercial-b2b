@@ -1,5 +1,6 @@
 package com.byguidev.commercial_prospecting_api.empresa.model;
 
+import com.byguidev.commercial_prospecting_api.empresa.model.constant.PorteEmpresa;
 import com.byguidev.commercial_prospecting_api.simples.model.Simples;
 import jakarta.persistence.*;
 import lombok.Getter;

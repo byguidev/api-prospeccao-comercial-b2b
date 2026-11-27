@@ -1,4 +1,4 @@
-package com.byguidev.commercial_prospecting_api.socio.model;
+package com.byguidev.commercial_prospecting_api.socio.model.constant;
 
 import com.byguidev.commercial_prospecting_api.compartilhado.CodigoEnum;
 import lombok.Getter;

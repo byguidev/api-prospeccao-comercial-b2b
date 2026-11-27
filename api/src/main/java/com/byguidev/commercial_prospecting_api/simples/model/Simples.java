@@ -1,6 +1,7 @@
 package com.byguidev.commercial_prospecting_api.simples.model;
 
 import com.byguidev.commercial_prospecting_api.empresa.model.Empresa;
+import com.byguidev.commercial_prospecting_api.simples.model.constant.OpcaoSN;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

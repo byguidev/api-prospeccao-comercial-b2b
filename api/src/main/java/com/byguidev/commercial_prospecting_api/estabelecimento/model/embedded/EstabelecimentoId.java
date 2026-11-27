@@ -1,4 +1,4 @@
-package com.byguidev.commercial_prospecting_api.estabelecimento.model;
+package com.byguidev.commercial_prospecting_api.estabelecimento.model.embedded;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
