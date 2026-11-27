@@ -20,6 +20,10 @@ Por isso, nas tabelas grandes com arquivos pendentes, a carga retira chaves estr
 paralelo e, no fim, recria tudo: o índice é construído ordenado e a chave estrangeira é validada numa
 única junção, em minutos. Uma falha entre a retirada e a recriação é retomada na execução seguinte.
 
+Registros órfãos: a Receita publica, raramente, linhas de ``simples`` cujo cnpj_basico não existe em ``empresas``
+(a chave estrangeira as recusaria). Antes de recriar as chaves elas são removidas, logadas e contadas em
+``carga_descartes``; a conferência com o relatório soma esses descartes, então a carga não diverge.
+
 Usa o cliente ``psql`` (sem dependências Python). A senha NUNCA vem de argumento: use a variável
 PGPASSWORD ou o arquivo pgpass.conf (Windows: %APPDATA%\\postgresql\\pgpass.conf), formato
 ``host:porta:banco:usuario:senha``. O psql roda com ``-w`` (nunca pergunta senha), para não travar
@@ -66,6 +70,13 @@ DEFAULT_JOBS = 4  # arquivos carregados ao mesmo tempo
 LOAD_SETTINGS = {"synchronous_commit": "off"}
 # Só nas sessões que recriam chaves/índices: o padrão (64 MB) é pequeno demais para ordenar dezenas de milhões de linhas.
 RESTORE_SETTINGS = {"maintenance_work_mem": "1GB", "max_parallel_maintenance_workers": "4"}
+# Tabelas com chave estrangeira para empresas que a Receita publica com registros órfãos (cnpj_basico sem empresa).
+# Esses registros seriam recusados ao recriar a chave estrangeira; são removidos antes e contados em carga_descartes.
+# Só entram aqui tabelas em que isso foi observado: a limpeza é uma junção a mais sobre empresas.
+ORPHAN_TABLES = ("simples",)
+# Só na sessão que procura órfãos: a junção contra empresas (dezenas de milhões de linhas) cabe melhor em memória.
+ORPHAN_SETTINGS = {"work_mem": "1GB"}
+ORPHAN_SAMPLE = 20  # quantos cnpj_basico descartados aparecem no log
 
 CONTROL_DDL = """
 CREATE TABLE IF NOT EXISTS carga_arquivos (
@@ -77,6 +88,8 @@ CREATE TABLE IF NOT EXISTS carga_status (
 CREATE TABLE IF NOT EXISTS carga_objetos (
     tabela text, nome text, tipo text NOT NULL, ddl text NOT NULL,
     removido boolean NOT NULL DEFAULT false, PRIMARY KEY (tabela, nome));
+CREATE TABLE IF NOT EXISTS carga_descartes (
+    competencia text, tabela text, qtd bigint NOT NULL, PRIMARY KEY (competencia, tabela));
 """
 
 log = logging.getLogger("receita.carga")
@@ -175,10 +188,36 @@ class Banco:
             "BEGIN;\n"
             f"TRUNCATE {', '.join(LOAD_ORDER)} RESTART IDENTITY;\n"
             "DELETE FROM carga_arquivos;\n"
+            "DELETE FROM carga_descartes;\n"
             "DELETE FROM carga_status;\n"
             f"INSERT INTO carga_status (competencia, assinatura, status) VALUES ('{competencia}', '{assinatura}', 'carregando');\n"
             "COMMIT;"
         )
+
+    def descartados(self, competencia: str) -> dict[str, int]:
+        """Registros órfãos já removidos por tabela nesta competência (a conferência com o relatório os soma de volta)."""
+        out = self._run(f"SELECT tabela || '|' || qtd FROM carga_descartes WHERE competencia = '{competencia}'")
+        return {linha.split("|")[0]: int(linha.split("|")[1]) for linha in out.splitlines()} if out else {}
+
+    def remover_orfaos(self, competencia: str, tabela: str) -> tuple[int, str]:
+        """Remove de ``tabela`` os registros cujo cnpj_basico não existe em empresas e acumula o total em carga_descartes.
+
+        Delete e registro na mesma instrução (uma transação): uma queda no meio não perde a contagem. Chamar de novo é
+        seguro (sem órfãos, remove 0). Retorna (quantidade removida, amostra de cnpj_basico separados por vírgula).
+        """
+        if tabela not in ORPHAN_TABLES:
+            raise LoadError(f"tabela sem limpeza de órfãos: {tabela}")
+        out = self._run(
+            f"WITH d AS (DELETE FROM {tabela} f WHERE NOT EXISTS "
+            "(SELECT 1 FROM empresas e WHERE e.cnpj_basico = f.cnpj_basico) RETURNING f.cnpj_basico), "
+            "i AS (INSERT INTO carga_descartes (competencia, tabela, qtd) "
+            f"SELECT '{competencia}', '{tabela}', count(*) FROM d "
+            "ON CONFLICT (competencia, tabela) DO UPDATE SET qtd = carga_descartes.qtd + EXCLUDED.qtd) "
+            f"SELECT count(*) || '|' || coalesce(array_to_string((array_agg(cnpj_basico))[1:{ORPHAN_SAMPLE}], ','), '') FROM d",
+            settings=ORPHAN_SETTINGS,
+        )
+        quantidade, _, amostra = out.partition("|")
+        return int(quantidade), amostra
 
     def arquivos_carregados(self, competencia: str) -> set[str]:
         out = self._run(f"SELECT arquivo FROM carga_arquivos WHERE competencia = '{competencia}'")
@@ -380,12 +419,18 @@ def carregar(
     tarefas.sort(key=lambda tc: tc[1].stat().st_size, reverse=True)  # os maiores primeiro: melhor distribuição
     _carregar_em_paralelo(banco, tarefas, competencia, jobs)
 
+    # Órfãos já removidos (numa execução anterior interrompida) contam como carregados: foram descartados de propósito.
+    descartados = banco.descartados(competencia)
     obtido = banco.contagens(LOAD_ORDER)
-    if divergentes := {t: (obtido[t], esperado[t]) for t in LOAD_ORDER if obtido[t] != esperado[t]}:
+    divergentes = {
+        t: (obtido[t] + descartados.get(t, 0), esperado[t])
+        for t in LOAD_ORDER if obtido[t] + descartados.get(t, 0) != esperado[t]
+    }
+    if divergentes:
         detalhe = ", ".join(f"{t}: banco={a:,} relatório={b:,}" for t, (a, b) in divergentes.items())
         raise LoadError(f"contagens divergentes após a carga ({detalhe})")
 
-    _restaurar_objetos(banco)
+    _restaurar_objetos(banco, competencia)
     banco.analisar(LOAD_ORDER)
     banco.concluir(competencia)
     log.info("Carga da competência %s concluída em %.0f s.", competencia, time.perf_counter() - inicio)
@@ -422,10 +467,24 @@ def _carregar_em_paralelo(banco, tarefas: list[tuple[str, Path]], competencia: s
         raise erro
 
 
-def _restaurar_objetos(banco) -> None:
-    """Recria o que a carga retirou: primárias, índices e, por último, estrangeiras (precisam das primárias)."""
+def _remover_orfaos(banco, competencia: str) -> None:
+    """Descarta os registros sem empresa correspondente, que a chave estrangeira recusaria (e registra quantos)."""
+    for tabela in ORPHAN_TABLES:
+        t0 = time.perf_counter()
+        removidos, amostra = banco.remover_orfaos(competencia, tabela)
+        if removidos:
+            log.warning("  %s: %d registro(s) órfão(s), sem empresa correspondente, descartado(s) (%.0f s); cnpj_basico: %s%s",
+                        tabela, removidos, time.perf_counter() - t0, amostra, ", ..." if removidos > ORPHAN_SAMPLE else "")
+
+
+def _restaurar_objetos(banco, competencia: str) -> None:
+    """Recria o que a carga retirou: primárias, índices e, por último, estrangeiras (precisam das primárias).
+
+    Antes, descarta os órfãos: só há o que limpar se as chaves foram retiradas (senão a própria chave já os impediria).
+    """
     pendentes = banco.objetos_pendentes()
     if pendentes:
+        _remover_orfaos(banco, competencia)
         log.info("Recriando %d chave(s)/índice(s) retirados na carga...", len(pendentes))
     for tabela, nome in pendentes:
         t0 = time.perf_counter()

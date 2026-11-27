@@ -49,8 +49,11 @@ def make_output(root: Path, erros: dict | None = None, skip_csv: str | None = No
 class FakeBanco:
     """Banco em memória com a mesma interface de Banco; registra o que foi feito."""
 
-    def __init__(self, atual=None, contagens=None, ausentes=(), falha_em=None, objetos_pendentes=(), pausa=0.0):
+    def __init__(self, atual=None, contagens=None, ausentes=(), falha_em=None, objetos_pendentes=(), pausa=0.0,
+                 orfaos=None, descartes=None):
         self.eventos: list = []
+        self.orfaos = dict(orfaos or {})  # órfãos por tabela que a carga vai trazer nos CSVs
+        self.descartes = dict(descartes or {})
         self.atual = atual
         self.tabelas = dict(contagens or {t: 0 for t in LOAD_ORDER})
         self.carregados: set[str] = set()
@@ -73,7 +76,18 @@ class FakeBanco:
         self.eventos.append("truncate")
         self.tabelas = {t: 0 for t in LOAD_ORDER}
         self.carregados = set()
+        self.descartes = {}
         self.atual = EstadoCarga(competencia, assinatura, "carregando")
+
+    def descartados(self, competencia): return dict(self.descartes)
+
+    def remover_orfaos(self, competencia, tabela):
+        self.eventos.append(("orfaos", tabela))
+        n = self.orfaos.pop(tabela, 0)
+        self.tabelas[tabela] -= n
+        if n:
+            self.descartes[tabela] = self.descartes.get(tabela, 0) + n
+        return n, "11111111" if n else ""
 
     def registrar_inicio(self, competencia, assinatura):
         self.eventos.append("registrar_inicio")
@@ -149,6 +163,40 @@ class CarregarTest(unittest.TestCase):
         self.assertLess(max(restauros), banco.indice("analisar"))
         self.assertEqual(banco.objetos, [])
         self.assertEqual(banco.atual.status, "concluida")
+
+    def test_orphans_are_removed_after_the_load_and_before_the_keys_come_back(self):
+        banco = FakeBanco(orfaos={"simples": 1})
+        self.assertEqual(self.run_carga(banco), "carregada")  # a conferência de contagens passa: o órfão veio nos CSVs
+        ultima = max(banco.indice(("carga", n)) for n in banco.cargas())
+        primeira_chave = min(i for i, e in enumerate(banco.eventos) if isinstance(e, tuple) and e[0] == "restaurar")
+        self.assertGreater(banco.indice(("orfaos", "simples")), ultima)
+        self.assertLess(banco.indice(("orfaos", "simples")), primeira_chave)
+        self.assertEqual(banco.descartes, {"simples": 1})
+        self.assertEqual(banco.atual.status, "concluida")
+
+    def test_resume_after_orphans_were_removed_still_matches_the_report(self):
+        # queda depois da limpeza e antes de recriar as chaves: o banco tem 1 linha a menos que o relatório
+        contagens = {**ESPERADO, "simples": ESPERADO["simples"] - 1}
+        banco = FakeBanco(atual=EstadoCarga(COMPETENCIA, ASSINATURA, "carregando"), contagens=contagens,
+                          objetos_pendentes=[("simples", "simples_pkey")], descartes={"simples": 1})
+        banco.carregados = set(LINHAS_POR_CSV)
+        self.assertEqual(self.run_carga(banco), "carregada")
+        self.assertEqual(banco.cargas(), [])
+
+    def test_missing_rows_that_were_not_discarded_are_still_an_error(self):
+        contagens = {**ESPERADO, "simples": ESPERADO["simples"] - 1}  # falta uma e ninguém a descartou
+        banco = FakeBanco(atual=EstadoCarga(COMPETENCIA, ASSINATURA, "carregando"), contagens=contagens,
+                          objetos_pendentes=[("simples", "simples_pkey")])
+        banco.carregados = set(LINHAS_POR_CSV)
+        with self.assertRaisesRegex(LoadError, "simples"):
+            self.run_carga(banco)
+        self.assertNotEqual(banco.atual.status, "concluida")
+
+    def test_no_orphan_cleanup_when_there_are_no_keys_to_restore(self):
+        banco = FakeBanco(atual=EstadoCarga(COMPETENCIA, ASSINATURA, "carregando"), contagens=ESPERADO)
+        banco.carregados = set(LINHAS_POR_CSV)
+        self.run_carga(banco)
+        self.assertNotIn(("orfaos", "simples"), banco.eventos)
 
     def test_lookup_tables_never_lose_their_keys(self):
         banco = FakeBanco()
@@ -391,6 +439,33 @@ class BancoSqlTest(unittest.TestCase):
         call = self.capture("restaurar", "empresas", "x'; DROP TABLE empresas; --")
         self.assertIn("x''; DROP TABLE empresas; --", call.args[0])  # aspas escapadas: vira texto, não comando
         self.assertEqual(call.kwargs["settings"]["maintenance_work_mem"], "1GB")
+
+    def test_start_also_clears_the_discard_counts(self):
+        sql = self.capture("iniciar_carga", COMPETENCIA, ASSINATURA).args[0]
+        self.assertIn("DELETE FROM carga_descartes;", sql)
+
+    def test_orphan_removal_deletes_and_counts_in_one_statement(self):
+        with mock.patch.object(self.banco, "_run", return_value="2|24417449,11111111") as run:
+            self.assertEqual(self.banco.remover_orfaos(COMPETENCIA, "simples"), (2, "24417449,11111111"))
+        sql = run.call_args.args[0]
+        self.assertIn("DELETE FROM simples f WHERE NOT EXISTS", sql)
+        self.assertIn("e.cnpj_basico = f.cnpj_basico", sql)
+        self.assertIn("INSERT INTO carga_descartes", sql)  # na mesma instrução: a contagem não se perde numa queda
+        self.assertIn(f"'{COMPETENCIA}', 'simples'", sql)
+        self.assertEqual(run.call_args.kwargs["settings"], {"work_mem": "1GB"})
+
+        with mock.patch.object(self.banco, "_run", return_value="0|"):
+            self.assertEqual(self.banco.remover_orfaos(COMPETENCIA, "simples"), (0, ""))
+
+    def test_orphan_removal_refuses_tables_outside_the_list(self):
+        with self.assertRaises(LoadError):
+            self.banco.remover_orfaos(COMPETENCIA, "empresas; DROP TABLE empresas")
+
+    def test_discard_counts_parsing(self):
+        with mock.patch.object(self.banco, "_run", return_value="simples|2"):
+            self.assertEqual(self.banco.descartados(COMPETENCIA), {"simples": 2})
+        with mock.patch.object(self.banco, "_run", return_value=""):
+            self.assertEqual(self.banco.descartados(COMPETENCIA), {})
 
     def test_resume_without_truncating_only_registers_the_start(self):
         sql = self.capture("registrar_inicio", COMPETENCIA, ASSINATURA).args[0]

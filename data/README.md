@@ -79,7 +79,7 @@ O estado fica no próprio banco, em duas tabelas de controle criadas automaticam
 | Sem controle, mas as contagens já são iguais às do relatório (carga manual anterior) | Adota como concluída, sem recarregar |
 | `--force` | `TRUNCATE` e carga completa |
 
-Ordem: tabelas de apoio, `empresas`, depois `estabelecimentos`, `socios` e `simples` (chaves estrangeiras para `empresas`). Ao final, a contagem de cada tabela é comparada com o `relatorio_processamento.json` (divergência = erro) e roda `ANALYZE`. Execuções parciais (`--tables`/`--limit`) nunca carregam o banco.
+Ordem: tabelas de apoio, `empresas`, depois `estabelecimentos`, `socios` e `simples` (chaves estrangeiras para `empresas`). **Registros órfãos:** a Receita publica, raramente, linhas de `simples` cujo `cnpj_basico` não existe em `empresas` (a chave estrangeira as recusaria). Depois do `COPY` e antes de recriar as chaves, a carga as remove, registra o aviso no log (quantidade e amostra dos `cnpj_basico`) e soma o total em `carga_descartes`; a conferência com o relatório conta esses descartes, então não acusa divergência. Ao final, a contagem de cada tabela é comparada com o `relatorio_processamento.json` (divergência = erro) e roda `ANALYZE`. Execuções parciais (`--tables`/`--limit`) nunca carregam o banco.
 
 **Durante a carga a API vê tabelas vazias ou incompletas** (esvaziar e recarregar tem essa janela; leva horas). As tabelas precisam existir: suba a API uma vez (`ddl-auto=update`).
 
