@@ -1,9 +1,7 @@
 package com.byguidev.commercial_prospecting_api.simples.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.byguidev.commercial_prospecting_api.empresa.model.Empresa;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,12 +16,20 @@ public class Simples {
     @Id
     @Column(name="cnpj_basico",length=8)
     private String cnpjBasico;
+
+    @OneToOne(fetch=FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name="cnpj_basico")
+    private Empresa empresa;
+
     @Column(length = 1)
     private OpcaoSN opcaoSimples;
-    private LocalDate dataOpcaoSimples;
-    private LocalDate dataExclusaoSimples;
+
     @Column(length = 1)
     private OpcaoSN opcaoMei;
+
+    private LocalDate dataOpcaoSimples;
+    private LocalDate dataExclusaoSimples;
     private LocalDate dataOpcaoMei;
     private LocalDate dataExclusaoMei;
 }
