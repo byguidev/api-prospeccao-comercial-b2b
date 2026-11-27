@@ -20,7 +20,8 @@ public record EstabelecimentoFiltroRequest(
     OpcaoSN opcaoMei,
     OpcaoSN opcaoSimples,
     String naturezaJuridica
-    // String correioEletronico,
-    // String telefone1
 ) {
+    public EstabelecimentoFiltroRequest {
+        if (situacaoCadastral == null) situacaoCadastral = SituacaoCadastral.ATIVA;
+    }
 }

@@ -25,4 +25,9 @@ public class EstabelecimentoId implements Serializable {
 
     @Column(name="cnpj_dv",length=2)
     private String cnpjDv;
+
+    @Override
+    public String toString() {
+        return cnpjBasico+"/"+cnpjOrdem+"-"+cnpjDv;
+    }
 }
