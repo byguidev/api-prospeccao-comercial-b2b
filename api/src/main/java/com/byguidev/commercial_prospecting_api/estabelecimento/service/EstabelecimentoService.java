@@ -6,18 +6,18 @@ import com.byguidev.commercial_prospecting_api.estabelecimento.model.Estabelecim
 import com.byguidev.commercial_prospecting_api.estabelecimento.repository.EstabelecimentoRepository;
 import com.byguidev.commercial_prospecting_api.estabelecimento.specification.EstabelecimentoSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
 public class EstabelecimentoService {
     private final EstabelecimentoRepository repository;
 
-    public List<EstabelecimentoResponseDTO> buscarEstabelecimentos(EstabelecimentoFiltroRequest filtros) {
+    public Page<EstabelecimentoResponseDTO> buscarEstabelecimentos(EstabelecimentoFiltroRequest filtros, Pageable pageable) {
         Specification<Estabelecimento> spec = EstabelecimentoSpecification.comFiltros(filtros);
-        return repository.findAll(spec).stream().map(EstabelecimentoResponseDTO::new).toList();
+        return repository.findAll(spec, pageable).map(EstabelecimentoResponseDTO::new);
     }
 }
