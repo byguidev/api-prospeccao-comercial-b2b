@@ -1,4 +1,4 @@
-package com.byguidev.commercial_prospecting_api.compartilhado;
+package com.byguidev.commercial_prospecting_api.compartilhado.constant;
 
 import jakarta.persistence.AttributeConverter;
 
